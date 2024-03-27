@@ -1,14 +1,16 @@
 rm(list=ls())
 
 library(readxl)
-library(dplyr)
+library(tidyverse)
 library(zoo)
-data = read_excel("group project/ROUTPUTQvQd.xlsx") 
+data = read_excel("../data/ROUTPUTQvQd.xlsx") 
 
 # function: get necessary data 
 # input: user select the end of the desired forecast interval
 # output: get all the data for training, cv and testing
 # e.g. if user selects 24Q1, then 19Q1 will be used for training, 19Q2-21Q3 will be used for cv, 21Q4-24Q1 will be used for testing
+
+mse_data = data[,ncol(data)]
 
 get_data = function(end_quarter) {
   col_name = paste("ROUTPUT", end_quarter, sep = "")
@@ -86,8 +88,7 @@ AR2_1_result = AR2_1$pred
 
 
 # get real-time Y (at the end of the forecast period?) for cv
-data_most_recent = data_full %>%
-  select(ncol(data_full)) %>% # extract last column
+data_most_recent = mse_data %>% # extract last column
   rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
   mutate(gdp = as.numeric(gdp)) %>%
   drop_na() %>%
@@ -100,7 +101,7 @@ Y=as.matrix(400*(temp[,1]-temp[,2])) #GDP growth via log difference
 
 
 # cross validation - rolling window, adjusted code to add p as a parameter
-ar.rolling.window=function(data_cv,noos,p,h=1){ #equality here  means deafult inputs
+ar.rolling.window=function(data_cv,noos,p,h=1){ #equality here  means default inputs
   
   save.coef=matrix(NA,noos,p+1) #blank matrix for coefficients at each iteration (3=constant+ 2 lags)
   save.pred=matrix(NA,noos,1) #blank for forecasts
@@ -128,8 +129,8 @@ ar.rolling.window=function(data_cv,noos,p,h=1){ #equality here  means deafult in
   
   #Some useful post-prediction misc stuff:
   real=Y #get actual values
-  plot(real,type="l")
-  lines(c(rep(NA,length(real)-noos),save.pred),col="red") #padded with NA for blanks, plot predictions vs. actual
+  #plot(real,type="l")
+  #lines(c(rep(NA,length(real)-noos),save.pred),col="red") #padded with NA for blanks, plot predictions vs. actual
   
   rmse=sqrt(mean((tail(real,noos)-save.pred)^2)) #compute RMSE
   mae=mean(abs(tail(real,noos)-save.pred)) #compute MAE (Mean Absolute Error)
@@ -151,4 +152,8 @@ cv_rolling = function(data_full, noos = 10, p, h = 1){
 
 ar1=cv_rolling(data_full,10,2,1) #1-step POOS AR(2) forecast
 
-
+test_rolling = function(data_full, noos = 10, p, h){
+  data_test = data_full %>%
+    select(c(1, 13:22))
+  return(ar.rolling.window(data_test, noos, p, h))
+}
