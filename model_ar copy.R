@@ -29,6 +29,15 @@ get_data = function(end_quarter) {
 
 data_full = get_data("24Q1")
 
+year_end = as.numeric(str_sub("24Q1", start = 1, end = 2))
+quarter_end = as.numeric(str_sub("24Q1", start = 4, end = 4))
+ll = get_data("14Q1") %>% select(last_col()) %>% rename_with(.cols = 1, ~"gdp") %>%
+  filter(!is.na(as.numeric(gdp))) %>% nrow()
+true_values = tail(mse_data[1:ll,], 15)
+data2 = get_data("12Q3")
+get_data("24Q1") %>% select(last_col()) %>% rename_with(.cols = 1, ~"gdp") %>%
+  filter(is.na(as.numeric(gdp)))
+
 fitAR=function(Y,p,h){
   
   #Inputs: Y- predicted variable,  p - AR order, h -forecast horizon
@@ -92,7 +101,7 @@ data_most_recent = mse_data %>% # extract last column
   rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
   mutate(gdp = as.numeric(gdp)) %>%
   drop_na() %>%
-  tail(n = 91) %>%
+  #tail(n = 91) %>%
   mutate(loggdp = log(gdp))
   
 temp=embed(data_most_recent$loggdp,2) #create lag of log(GDP) and align the original series
@@ -112,10 +121,14 @@ ar.rolling.window=function(data_cv,noos,p,h=1){ #equality here  means default in
       rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
       mutate(gdp = as.numeric(gdp)) %>%
       drop_na() %>%
-      tail(80+i+1) %>%
-      mutate(loggdp = log(gdp))
+      #tail(80+i+1) %>%
+      mutate(loggdp = log(gdp)) %>%
+      pull(loggdp)
+    temp_Y = as.matrix(temp_Y)
+
+    temp_Y = temp_Y[i:nrow(temp_Y),]
     
-    temp=embed(temp_Y$loggdp,2) #create lag of log(GDP) and align the original series
+    temp=embed(temp_Y,2) #create lag of log(GDP) and align the original series
     #with it for the available
     
     Y.window=as.matrix(400*(temp[,1]-temp[,2])) #GDP growth via log difference
@@ -150,10 +163,90 @@ cv_rolling = function(data_full, noos = 10, p, h = 1){
   return(ar.rolling.window(data_cv, noos, p, h))
 }
 
-ar1=cv_rolling(data_full,10,2,1) #1-step POOS AR(2) forecast
+ar12=cv_rolling(data_full,10,2,1) #1-step POOS AR(2) forecast
 
 test_rolling = function(data_full, noos = 10, p, h){
   data_test = data_full %>%
     select(c(1, 13:22))
   return(ar.rolling.window(data_test, noos, p, h))
 }
+
+
+#expanding window CV
+ar.expanding.window=function(data_cv,noos,p,h=1){ #equality here  means default inputs
+  
+  save.coef=matrix(NA,noos,p+1) #blank matrix for coefficients at each iteration (3=constant+ 2 lags)
+  save.pred=matrix(NA,noos,1) #blank for forecasts
+  for(i in 1:noos){ 
+    # get real-time data
+    temp_Y = data_cv %>%
+      select(i+1) %>%
+      rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
+      mutate(gdp = as.numeric(gdp)) %>%
+      drop_na() %>%
+    #  tail(80+i+1) %>%
+      mutate(loggdp = log(gdp)) %>%
+      pull(loggdp)
+    
+    temp_Y = as.matrix(temp_Y)
+    
+    
+    temp=embed(temp_Y,2) #create lag of log(GDP) and align the original series
+    #with it for the available
+    
+    Y.window=as.matrix(400*(temp[,1]-temp[,2])) #GDP growth via log difference
+    
+    
+    winfit=fitAR(Y.window,p,h) #call the function to fit the AR(2) and generate h-step forecast
+    save.coef[(1+noos-i),]=winfit$coef #save estimated coefficients
+    save.pred[(1+noos-i),]=winfit$pred #save the forecast
+    #cat("iteration",(1+noos-i),"\n") #display iteration number (useful for slower ML methods)
+  }
+  
+  #Some useful post-prediction misc stuff:
+  real=Y #get actual values
+  #plot(real,type="l")
+  #lines(c(rep(NA,length(real)-noos),save.pred),col="red") #padded with NA for blanks, plot predictions vs. actual
+  
+  rmse=sqrt(mean((tail(real,noos)-save.pred)^2)) #compute RMSE
+  mae=mean(abs(tail(real,noos)-save.pred)) #compute MAE (Mean Absolute Error)
+  errors=c("rmse"=rmse,"mae"=mae) #stack errors in a vector
+  
+  return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
+}
+
+cv_expanding = function(data_full, noos = 10, p, h = 1){
+  data_cv = data_full %>%
+    select(c(1, 3:12))
+  return(ar.expanding.window(data_cv, noos, p, h))
+}
+
+ar1.1=cv_expanding(data_full,10,2,1) #1-step POOS AR(2) forecast
+
+test_expanding = function(data_full, noos = 10, p, h){
+  data_test = data_full %>%
+    select(c(1, 13:22))
+  return(ar.expanding.window(data_test, noos, p, h))
+}
+
+
+#find interval boundaries for plotting
+intervals = function(x, p, rmsfe) {
+  alpha = qnorm(p+(1-p)/2, lower.tail = TRUE)
+  upper = x + alpha*rmsfe
+  lower = x - alpha*rmsfe
+  
+  boundaries = data.frame(upper, x, lower)
+  return(boundaries)
+}
+
+int = intervals(ar1.1$pred, 0.95, ar1.1$errors[1])
+int[,3]
+int$lower
+# true_ts = ts(tail(Y, 15), start = c(20, 3), end = c(24, 1), frequency = 4)
+# forecast.ts = ts(ar1.1$pred, start = c(21, 4), end = c(24, 1), frequency = 4)
+# forecast.ts1 = ts(ar1.1$pred, start = c(20, 3), end = c(24, 1), frequency = 4)
+# plot.ts(true_ts)
+# points(forecast.ts, type = "l", col = "red")
+# points(forecast.ts)
+# plot(forecast.ts)
