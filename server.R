@@ -57,8 +57,10 @@ server = function(input, output, session) {
   
   #plot for chosen model
   #Syntax: ts(object, start=startdate, end=enddate, freq=frequency (periods per year))
-  year_end = reactive({as.numeric(str_sub(input$end_quarter, start = 1, end = 2))})
-  quarter_end = reactive({as.numeric(str_sub(input$end_quarter, start = 4, end = 4))})
+  rval_year_end = reactive({as.numeric(str_sub(input$end_quarter, start = 1, end = 2))})
+  rval_quarter_end = reactive({as.numeric(str_sub(input$end_quarter, start = 4, end = 4))})
+  year_end = rval_year_end()
+  quarter_end = rval_quarter_end()
   year_start = ifelse(quarter_end > 2, year_end - 3, year_end - 4)
   quarter_start = ifelse(quarter_end == 1, 3, 
                          ifelse(quarter_end == 2, 4, 
