@@ -2,43 +2,78 @@ library(shiny)
 source("model_ar copy.R")
 
 server = function(input, output, session) {
-  data_used = get_data(input$end_quarter)
-  #rval_data = reactive({get_data(input$end_quarter)})
-  #data_used = rval_data()?
+  #data_used = get_data(input$end_quarter)
+  data_used = reactive({
+    get_data(input$end_quarter)
+  })
   AR_lags = rep(0, 8)
   
-  if (input$window == "rolling") {
-    cv_fn = function(data_full, p, h) {
-      return(cv_rolling(data_full, p, h))
+  # if (input$window == "rolling") {
+    # cv_fn = function(data_full, p, h) {
+  #     return(cv_rolling(data_full, p, h))
+  #   }
+  #   test_fn = function(data_full, p, h) {
+  #     return(test_rolling(data_full, p, h))
+  #   }
+  # } else if (input$window == "expanding") {
+  #   #expanding window code
+  #   cv_fn = function(data_full, p, h) {
+  #     return(cv_expanding(data_full, p, h))
+  #   }
+  #   test_fn = function(data_full, p, h) {
+  #     return(test_expanding(data_full, p, h))
+  #   }
+  # }
+  #AR_models = sapply(AF_lags, function(i) {return(cv_fn(data_full = data_used, p = i, h = input$h)$errors)})
+  #rank_ar = order(AR_models[1,])
+  #best_ar_lag = rank_ar[1]
+ 
+  #dynamically choosing window tpye based on user input
+  cv_fn <- reacitve({
+    if(input$window == "rolling"){
+      cv_rolling
+    } else if (input$window == "expanding"){
+      cv_expanding
     }
-    test_fn = function(data_full, p, h) {
-      return(test_rolling(data_full, p, h))
+  })
+  test_fn = reactive({
+    if (input$window == "rolling"){
+      test_rolling
     }
-  } else if (input$window == "expanding") {
-    #expanding window code
-    cv_fn = function(data_full, p, h) {
-      return(cv_rolling(data_full, p, h))
+    else if (input$window == "expanding"){
+      test_expanding
     }
-    test_fn = function(data_full, p, h) {
-      return(test_rolling(data_full, p, h))
-    }
-  }
+  })
   
-  AR_models = sapply(AF_lags, function(i) {return(cv_fn(data_full = data_used, p = i, h = input$h)$errors)})
+  #reactive exp for computing AR model erros 
+  AR_models = reactive({
+    sapply(1:8, function(i){
+      cv_fn()(data_full = data_used(), p = i, h = input$h)$errors
+    })
+  })
   
-   
-  #for (i in 1:8) {
-  #  AR_models[i] = cv_rolling(data_used, p = i, h = input$h)$errors
-  #}
+  rank_ar = reactive({
+    order(AR_models()[1,])
+  })
   
-  rank_ar = order(AR_models[1,])
+  best_ar_lag = reactive({
+    rank_ar()[1]
+  })
   
-  best_ar_lag = rank_ar[1]
   
   #performance metrics
   #code
-  output$rmsfe = test_fn(data_used, p = best_ar_lag, h = input$h)$errors[1]
-  #text output? not sure put where
+  output$rmsfe = renderText({
+    best_lag = best_ar_lag() #reactive best AR lag
+    rmsfe_val = test_fn()(data_full = data_used(), p = best_lag, h = input$h)$errors[1]
+    paste("RMSFE for the best AR model (lag", best_lag, "):", rmsfe_val)
+  })
+  
+  output$rmsfe <- renderText({
+    best_lag <- best_ar_lag()  # Accessing the reactive best AR lag
+    rmsfe_val <- test_fn()(data_full = data_used(), p = best_lag, h = input$h)$errors[1]
+    paste("RMSFE for the best AR model (lag", best_lag, "):", rmsfe_val)
+  })
   
   
   
