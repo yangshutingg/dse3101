@@ -1,6 +1,9 @@
 library(shiny)
 
 ui <- fluidPage(
+  selectInput("model_type",
+              "Model type",
+              choices = c("AR", "ADL", "PCR")),
   selectInput("h",
               "Forecast horizon",
               choices = c("1", "2", "3", "4")
@@ -22,5 +25,7 @@ ui <- fluidPage(
               "Test window", 
               value = 10,
               min = 10,
-              max = 40)
+              max = 40),
+  textOutput("rmsfe"),
+  plotOutput("plot")
 )
