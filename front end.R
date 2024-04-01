@@ -15,12 +15,12 @@ ui <- fluidPage(
   ),
   sliderInput("start_quarter",
               "Starting quarter",
-              value = "1974Q1", 
-              min = "1974Q1",
-              max = "2023Q4"),
+              value = 1974, 
+              min = 1974,
+              max = 2023),
   sliderInput("test_window",
               "Test window", 
-              value = "10",
-              min = "10",
-              max = "40")
+              value = 10,
+              min = 10,
+              max = 40)
 )
