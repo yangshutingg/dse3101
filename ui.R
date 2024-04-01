@@ -1,4 +1,5 @@
 library(shiny)
+library(shinyWidgets)
 
 ui <- fluidPage(
   selectInput("model_type",
@@ -16,16 +17,12 @@ ui <- fluidPage(
               "Forecast horizon",
               choices = c("1", "2", "3", "4")
   ),
-  sliderInput("start_quarter",
-              "Starting quarter",
-              value = 1974, 
-              min = 1974,
-              max = 2023),
-  sliderInput("end_quarter",
+  sliderTextInput("end_quarter",
               "Ending quarter",
-              value = 1974, 
-              min = 1974,
-              max = 2023),
+              choices = data$DATE,
+              selected = "1974:Q1",
+              from_min = "1974:Q1",
+              to_max = "2023:Q4"),
   sliderInput("test_window",
               "Test window", 
               value = 10,
