@@ -6,7 +6,7 @@ server = function(input, output, session) {
   data_used = reactive({
     get_data(input$end_quarter)
   })
-  AR_lags = rep(0, 8)
+  #AR_lags = rep(0, 8)
   
   # if (input$window == "rolling") {
     # cv_fn = function(data_full, p, h) {
