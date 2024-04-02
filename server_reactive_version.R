@@ -93,3 +93,5 @@ server = function(input, output, session) {
   })
   
 }
+
+#add more performance metrics 
