@@ -3,34 +3,33 @@ rm(list=ls())
 library(readxl)
 library(tidyverse)
 library(zoo)
+library(sandwich)
 data = read_excel("ROUTPUTQvQd.xlsx") 
-data = data[-c(1:48), ] # remove data before 1959Q1 due to NAs
+data = data[-c(1:49), ] # remove data before 1959Q2 due to NAs
 
 # user input:
-# starting & ending quarter for testing(min 10 quarters?), h-step, expanding/rolling window for cv
-# starting must > 1959q1+60, ending must >= starting+10, 10 <= ending-starting <= 40 --> training cv testing ratio = 80:20:20
+# starting & ending quarter for testing, h-step, expanding/rolling window for cv
+# no restriction for the length of interval, but earliest 150 quarters from 1965q4 -> 2003q2, latest 2023q4, length of cv is fixed at 50 quarters
 
 # function: get necessary data 
 # input: user select the end of the desired forecast interval
 # output: get all the data for training, cv and testing
-# e.g. if user selects 24Q1, then 19Q1 will be used for training, 19Q2-21Q3 will be used for cv, 21Q4-24Q1 will be used for testing
 
-mse_data = data[,ncol(data)]
-
+# sample input: 2003q2, 2005q4
 get_data = function(start_quarter, end_quarter) {
-  start_col_name = paste("ROUTPUT", start_quarter, sep = "")
-  end_col_name = paste("ROUTPUT", end_quarter, sep = "")
+  start_col_name = paste("ROUTPUT", str_sub(start_quarter, start = 3, end = 6), sep = "")
+  end_col_name = paste("ROUTPUT", str_sub(end_quarter, start = 3, end = 6), sep = "")
   
-  end_index = as.numeric(str_sub(end_quarter, start = 1, end = 2)) + as.numeric(str_sub(end_quarter, start = 4, end = 4)) / 4
-  # 24q1 --> 24.25
-  start_index = as.numeric(str_sub(start_quarter, start = 1, end = 2)) + as.numeric(str_sub(start_quarter, start = 4, end = 4)) / 4
+  end_index = as.numeric(str_sub(end_quarter, start = 3, end = 4)) + as.numeric(str_sub(end_quarter, start = 6, end = 6)) / 4
+  # 23q4 --> 23.75
+  start_index = as.numeric(str_sub(start_quarter, start = 3, end = 4)) + as.numeric(str_sub(start_quarter, start = 6, end = 6)) / 4
   num_quarters <<- (end_index - start_index) * 4
   
   data_full = data %>%
     select("DATE" : end_col_name)
   
-  num_col = num_quarters * 2 + 1
-  # extract last num_col columns up til the end period: 1 column for training, num_quarters in cross validation, num_quarters in testing
+  num_col = num_quarters + 50
+  # extract last num_col columns up til the end period: 50 quarters in cross validation, num_quarters in testing
   data_full = data_full[, (ncol(data_full)-num_col+1):ncol(data_full)]
   
   # adding the date column
@@ -39,7 +38,7 @@ get_data = function(start_quarter, end_quarter) {
   return(data_full)
 }
 
-data_full = get_data("20Q1","24Q1")
+data_full = get_data("2003Q2","2005Q4")
 
 year_end = as.numeric(str_sub("24Q1", start = 1, end = 2))
 quarter_end = as.numeric(str_sub("24Q1", start = 4, end = 4))
@@ -77,56 +76,26 @@ fitAR=function(Y,p,h){
 }
 
 
-# function: train AR(p) model
-# input: p, h, data for training
-# output: fitted training model, in a list
-# take the most recent data(column), retrieve the latest 80 quarters as training data
+# get latest Y - 2024q1
+mse_data = data[,ncol(data)]
 
-num_quarters_training = num_quarters * 4
-trainAR = function(data_full, p, h) {
-  data_training = data_full %>%
-    select(1:2) %>%
-    rename_with(.cols = 1, ~"date") %>%
-    rename_with(.cols = 2, ~"gdp") %>%  # renaming columns
-    mutate(gdp = as.numeric(gdp)) %>%
-    drop_na() %>%
-    tail(n = num_quarters_training) %>%
-    mutate(loggdp = log(gdp))
-  
-  temp=embed(data_training$loggdp,2) #create lag of log(GDP) and align the original series
-  
-  Y=as.matrix(400*(temp[,1]-temp[,2])) #GDP growth via log difference
-  
-  return(fitAR(Y, p, h))
-}
-
-
-# 1 step AR(2):
-AR2_1=trainAR(data_full,2,1)
-
-# get 1 step ahead point forecast
-AR2_1_result = AR2_1$pred
-
-
-
-# get real-time Y (at the end of the forecast period?) for cv
 data_most_recent = mse_data %>% # extract last column
   rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
   mutate(gdp = as.numeric(gdp)) %>%
   drop_na() %>%
-  #tail(n = 91) %>%
   mutate(loggdp = log(gdp))
-  
+
 temp=embed(data_most_recent$loggdp,2) #create lag of log(GDP) and align the original series
 
 Y=as.matrix(400*(temp[,1]-temp[,2])) #GDP growth via log difference
 
 
 # cross validation - rolling window, adjusted code to add p as a parameter
-ar.rolling.window=function(data_cv,noos,p,h=1){ #equality here  means default inputs
+ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default inputs
   
   save.coef=matrix(NA,noos,p+1) #blank matrix for coefficients at each iteration (3=constant+ 2 lags)
   save.pred=matrix(NA,noos,1) #blank for forecasts
+  real=matrix(NA,noos,1)
   for(i in 1:noos){ 
     # get real-time data
     temp_Y = data_cv %>%
@@ -134,11 +103,10 @@ ar.rolling.window=function(data_cv,noos,p,h=1){ #equality here  means default in
       rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
       mutate(gdp = as.numeric(gdp)) %>%
       drop_na() %>%
-      #tail(80+i+1) %>%
       mutate(loggdp = log(gdp)) %>%
       pull(loggdp)
     temp_Y = as.matrix(temp_Y)
-
+    
     temp_Y = temp_Y[i:nrow(temp_Y),]
     
     temp=embed(temp_Y,2) #create lag of log(GDP) and align the original series
@@ -151,45 +119,48 @@ ar.rolling.window=function(data_cv,noos,p,h=1){ #equality here  means default in
     save.coef[(1+noos-i),]=winfit$coef #save estimated coefficients
     save.pred[(1+noos-i),]=winfit$pred #save the forecast
     #cat("iteration",(1+noos-i),"\n") #display iteration number (useful for slower ML methods)
+    
+    real[i]=Y[length(Y.window)+1] #get actual values
   }
   
   #Some useful post-prediction misc stuff:
-  real=Y #get actual values
   #plot(real,type="l")
   #lines(c(rep(NA,length(real)-noos),save.pred),col="red") #padded with NA for blanks, plot predictions vs. actual
   
-  rmse=sqrt(mean((tail(real,noos)-save.pred)^2)) #compute RMSE
-  mae=mean(abs(tail(real,noos)-save.pred)) #compute MAE (Mean Absolute Error)
+  rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
+  mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
   errors=c("rmse"=rmse,"mae"=mae) #stack errors in a vector
   
   return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
 
 
-# function: rolling window - cross validation (10 quarters)
-# input: data, noos = 10, p, h=1
+# function: rolling window - cross validation (50 quarters)
+# input: data, noos = 50, p, h=1
 # output: cross validation results in a list + plot
 
-cv_rolling = function(data_full, noos = 10, p, h = 1){
+cv_rolling = function(data_full, Y, noos = 50, p, h){
   data_cv = data_full %>%
-    select(c(1, 3:(num_quarters+2)))
-  return(ar.rolling.window(data_cv, noos, p, h))
+    select(c(1, 2:51))
+  return(ar.rolling.window(data_cv, Y, noos=50, p, h))
 }
 
-ar12=cv_rolling(data_full,num_quarters,2,1) #1-step POOS AR(2) forecast
+ar12=cv_rolling(data_full,Y,noos=50,2,1) #1-step POOS AR(2) forecast
 
-test_rolling = function(data_full, noos = 10, p, h){
+test_rolling = function(data_full, Y, noos = num_quarters, p, h){
   data_test = data_full %>%
-    select(c(1, (num_quarters+3):ncol(data_full)))
-  return(ar.rolling.window(data_test, noos, p, h))
+    select(c(1, 52:ncol(data_full)))
+  return(ar.rolling.window(data_test, Y, noos = num_quarters, p, h))
 }
 
+ar12=test_rolling(data_full,Y,num_quarters,2,1) #1-step POOS AR(2) forecast
 
 #expanding window CV
-ar.expanding.window=function(data_cv,noos,p,h=1){ #equality here  means default inputs
+ar.expanding.window=function(data_cv,Y,noos,p,h){ #equality here  means default inputs
   
   save.coef=matrix(NA,noos,p+1) #blank matrix for coefficients at each iteration (3=constant+ 2 lags)
   save.pred=matrix(NA,noos,1) #blank for forecasts
+  real=matrix(NA,noos,1)
   for(i in 1:noos){ 
     # get real-time data
     temp_Y = data_cv %>%
@@ -197,7 +168,6 @@ ar.expanding.window=function(data_cv,noos,p,h=1){ #equality here  means default 
       rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
       mutate(gdp = as.numeric(gdp)) %>%
       drop_na() %>%
-    #  tail(80+i+1) %>%
       mutate(loggdp = log(gdp)) %>%
       pull(loggdp)
     
@@ -214,33 +184,36 @@ ar.expanding.window=function(data_cv,noos,p,h=1){ #equality here  means default 
     save.coef[(1+noos-i),]=winfit$coef #save estimated coefficients
     save.pred[(1+noos-i),]=winfit$pred #save the forecast
     #cat("iteration",(1+noos-i),"\n") #display iteration number (useful for slower ML methods)
+    
+    real[i]=Y[length(Y.window)+1] #get actual values
   }
   
   #Some useful post-prediction misc stuff:
-  real=Y #get actual values
   #plot(real,type="l")
   #lines(c(rep(NA,length(real)-noos),save.pred),col="red") #padded with NA for blanks, plot predictions vs. actual
   
-  rmse=sqrt(mean((tail(real,noos)-save.pred)^2)) #compute RMSE
-  mae=mean(abs(tail(real,noos)-save.pred)) #compute MAE (Mean Absolute Error)
+  rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
+  mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
   errors=c("rmse"=rmse,"mae"=mae) #stack errors in a vector
   
   return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
 
-cv_expanding = function(data_full, noos = 10, p, h = 1){
+cv_expanding = function(data_full, Y, noos = 50, p, h){
   data_cv = data_full %>%
-    select(c(1, 3:(num_quarters+2)))
-  return(ar.expanding.window(data_cv, noos, p, h))
+    select(c(1, 2:51))
+  return(ar.expanding.window(data_cv, Y, noos = 50, p, h))
 }
 
-ar1.1=cv_expanding(data_full,num_quarters,2,1) #1-step POOS AR(2) forecast
+ar1.1=cv_expanding(data_full,Y,50,2,1) #1-step POOS AR(2) forecast
 
-test_expanding = function(data_full, noos = 10, p, h){
+test_expanding = function(data_full, Y, noos = num_quarters, p, h){
   data_test = data_full %>%
-    select(c(1, (num_quarters+3):ncol(data_full)))
-  return(ar.expanding.window(data_test, noos, p, h))
+    select(c(1, 52:ncol(data_full)))
+  return(ar.expanding.window(data_test, Y, noos = num_quarters, p, h))
 }
+
+ar1.1=test_expanding(data_full,Y,num_quarters,2,1) #1-step POOS AR(2) forecast
 
 
 #find interval boundaries for plotting
@@ -263,3 +236,196 @@ plot.ts(true_ts)
 points(forecast.ts, type = "l", col = "red")
 points(forecast.ts)
 plot(forecast.ts)
+
+
+
+
+
+# ADL - real personal consumption, same transformation as gdp level
+rpc = read_excel("RCONQvQd.xlsx")
+rpc = rpc[-c(1:49), ] # remove data before 1959Q2 due to NAs
+
+get_data_rpc = function(start_quarter, end_quarter) {
+  start_col_name = paste("RCON", str_sub(start_quarter, start = 3, end = 6), sep = "")
+  end_col_name = paste("RCON", str_sub(end_quarter, start = 3, end = 6), sep = "")
+  
+  rpc_full = rpc %>%
+    select("DATE" : end_col_name)
+  
+  num_col = num_quarters + 50 
+  # extract last num_col columns up til the end period: 50 quarters in cross validation, num_quarters in testing
+  rpc_full = rpc_full[, (ncol(rpc_full)-num_col+1):ncol(rpc_full)]
+  
+  # adding the date column
+  rpc_full = cbind(rpc$DATE, rpc_full)
+  
+  return(rpc_full)
+}
+
+rpc_full = get_data_rpc("2003Q2","2005Q4")
+
+
+fitADL=function(Y,X1,p_y,p_x,h){
+  
+  aux=embed(Y,p_y+h) #create 2 lags + forecast horizon shift (=h option)
+  y=aux[,1] #  Y variable aligned/adjusted for missing data due to lags
+  lags_y=as.matrix(aux[,-c(1:(ncol(Y)*h))]) # lags of Y (predictors) corresponding to forecast horizon (prevent leakage)  
+  
+  aux_x1=embed(X1,p_x+h) # create lags for x1
+  lags_x1=as.matrix(aux_x1[,-c(1:(ncol(X1)*h))]) # lags of x1
+  X = cbind(lags_y, lags_x1) # column binding all the predictors (lags of Y and lags of X1)
+  
+  if(h==1){ 
+    new_y = matrix(tail(aux,1)[1:ncol(lags_y)],nrow=1) # extract y_t, y_t-1...
+    new_x1 = matrix(tail(aux_x1,1)[1:ncol(lags_x1)],nrow=1) # extract x_t, x_t-1...
+    X.out=cbind(new_y, new_x1) #retrieve last p observations if one-step forecast 
+  }else{
+    temp_y=aux[,-c(1:(ncol(Y)*(h-1)))] #delete first (h-1) columns of aux
+    temp_x1=aux_x1[,-c(1:(ncol(X1)*(h-1)))] #delete first (h-1) columns of aux_x1
+    new_y = matrix(tail(temp_y,1)[1:ncol(lags_y)],nrow=1)
+    new_x1 = matrix(tail(temp_x1,1)[1:ncol(lags_x1)],nrow=1)
+    X.out=cbind(new_y,new_x1) #last p observations to predict T+1 
+  }
+  
+  model=lm(y~X) #estimate direct h-step AR(p) by OLS 
+  coef=coef(model) #extract coefficients
+  
+  pred=c(1,X.out)%*%coef #make a forecast using the last few observations: a direct h-step forecast.
+  #note the addition of a constant to the test observation vector
+  
+  rmsfe=sqrt(sum(model$residuals^2)/nrow(X)) #get unadjusted rmsfe (ignoring estimation uncertainty)
+  
+  return(list("model"=model,"pred"=pred,"coef"=coef, "rmsfe"=rmsfe)) #save estimated AR regression, prediction, and estimated coefficients
+}
+
+
+
+# cross validation - rolling window, adjusted code to add p as a parameter
+adl.rolling.window=function(data_cv,rpc_cv,Y,noos,p_y,p_x,h=1){ #equality here  means default inputs
+  
+  save.coef=matrix(NA,noos,p_y+p_x+1) #blank matrix for coefficients at each iteration (3=constant+ 2 lags)
+  save.pred=matrix(NA,noos,1) #blank for forecasts
+  real=matrix(NA,noos,1)
+  for(i in 1:noos){ 
+    # get real-time data
+    temp_Y = data_cv %>%
+      select(i+1) %>%
+      rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
+      mutate(gdp = as.numeric(gdp)) %>%
+      drop_na() %>%
+      #tail(80+i+1) %>%
+      mutate(loggdp = log(gdp)) %>%
+      pull(loggdp)
+    temp_Y = as.matrix(temp_Y)
+    
+    temp_Y = temp_Y[i:nrow(temp_Y),]
+    
+    temp=embed(temp_Y,2) #create lag of log(GDP) and align the original series
+    #with it for the available
+    Y.window=as.matrix(400*(temp[,1]-temp[,2])) #GDP growth via log difference
+    
+    
+    temp_X1 = rpc_cv %>%
+      select(i+1) %>%
+      rename_with(.cols = 1, ~"rpc") %>%  # renaming columns
+      mutate(rpc = as.numeric(rpc)) %>%
+      drop_na() %>%
+      #tail(80+i+1) %>%
+      mutate(logrpc = log(rpc)) %>%
+      pull(logrpc)
+    temp_X1 = as.matrix(temp_X1)
+    
+    temp_X1 = temp_X1[i:nrow(temp_X1),]
+    
+    tempX1=embed(temp_X1,2) #create lag of log(rpc) and align the original series
+    X1.window=as.matrix(400*(tempX1[,1]-tempX1[,2])) #rpc growth via log difference
+    
+    winfit=fitADL(Y.window,X1.window,p_y,p_x,h) #call the function to fit the AR(2) and generate h-step forecast
+    save.coef[(1+noos-i),]=winfit$coef #save estimated coefficients
+    save.pred[(1+noos-i),]=winfit$pred #save the forecast
+    #cat("iteration",(1+noos-i),"\n") #display iteration number (useful for slower ML methods)
+    
+    real[i] = Y[length(Y.window)+1]
+  }
+  
+  #Some useful post-prediction misc stuff:
+  #plot(real,type="l")
+  #lines(c(rep(NA,length(real)-noos),save.pred),col="red") #padded with NA for blanks, plot predictions vs. actual
+  
+  rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
+  mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
+  errors=c("rmse"=rmse,"mae"=mae) #stack errors in a vector
+  
+  return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
+}
+
+
+# function: rolling window - cross validation (50 quarters)
+# input: data, noos = 10, p, h=1
+# output: cross validation results in a list
+
+cv_rolling_adl = function(data_full, rpc_full, Y, noos = 50, p_y, p_x, h = 1){
+  data_cv = data_full %>%
+    select(c(1, 2:51))
+  rpc_cv = rpc_full %>%
+    select(c(1, 2:51))
+  return(adl.rolling.window(data_cv, rpc_cv, Y, noos = 50, p_y, p_x, h))
+}
+
+adl22=cv_rolling_adl(data_full,rpc_full,Y,50,2,2,1) #1-step POOS ADL(2,2) forecast
+
+test_rolling_adl = function(data_full, rpc_full, Y, noos = num_quarters, p_y, p_x, h = 1){
+  data_test = data_full %>%
+    select(c(1, 52:ncol(data_full)))
+  rpc_test = rpc_full %>%
+    select(c(1, 52:ncol(rpc_full)))
+  return(adl.rolling.window(data_test, rpc_test, Y, noos = num_quarters, p_y, p_x, h))
+}
+
+adl22=test_rolling_adl(data_full,rpc_full,Y,num_quarters,2,2,1) #1-step POOS ADL(2,2) forecast
+
+# DM test - between AR and ADL
+# output: t-statistic and plot
+
+dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x, h) {
+  data_full = get_data(start_quarter, end_quarter)
+  rpc_full = get_data_rpc(start_quarter, end_quarter)
+  
+  # earliest possible start: 1959Q2, latest end: 2023q4
+  year_start = as.numeric(str_sub(start_quarter, start = 1, end = 4))
+  year_end = as.numeric(str_sub(end_quarter, start = 1, end = 4))
+  q_start = as.numeric(str_sub(start_quarter, start = 6, end = 6))
+  q_end = as.numeric(str_sub(end_quarter, start = 6, end = 6))
+  
+  row_start = (year_start - 1959) * 4 + q_start - 1 
+  row_end = (year_end - 1959) * 4 + q_end - 1 - 1 # additional -1 due to gdp growth transformation
+  
+  oosy = Y[c(row_start:row_end), ] # get real values
+  
+  ar = test_rolling(data_full, Y, num_quarters, ar_p, h)
+  #Compute absolute loss of AR model
+  lar = abs(oosy-ar$pred)
+  
+  adl = test_rolling_adl(data_full, rpc_full, Y, num_quarters, adl_p_y, adl_p_x, h)
+  #Compute absolute loss of ADL model
+  ladl = abs(oosy-adl$pred)
+  
+  #Compute loss differential (d_t) (AR-ADL)
+  dt = lar -ladl
+  
+  #Create ts object containing loss differential
+  dt.ts=ts(dt, start=c(year_start,q_start), end=c(year_end,q_end), freq=4)
+  
+  #Plot to examine stationarity:
+  plot.ts(dt.ts, main="Absolute Loss differential AR-ADL",cex.axis=1.8)
+  
+  #Regress d_t (AR-ADL) for 1-step forecasts on a constant - get estimate of mean(d_t)
+  dmreg=lm(dt~1) #regression
+  
+  x=dmreg$coefficients/sqrt(NeweyWest(dmreg,lag=num_quarters^(1/3))) #form the DM t-statistic
+  return(x[1,1]) # extract result
+}
+
+# comparing AR(2) and ADL(2, 2), 1-step ahead
+dm_test(Y, "2003Q2", "2005Q4", 2, 2, 2, 1)
+
