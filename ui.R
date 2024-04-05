@@ -29,10 +29,6 @@ ui <- fluidPage(
                   "Model type",
                   choices = c("AR", "ADL", "PCR")
       ),
-      selectInput("window",
-                  "Window type",
-                  choices = c("Rolling", "Expanding")
-      ),
       selectInput("sig_level",
                   "Forecast interval",
                   choices = c("50%", "68%", "80%", "90%")
