@@ -9,6 +9,10 @@ ui <- fluidPage(
               "Forecast horizon",
               choices = c("1", "2", "3", "4")
   ),
+  selectInput("window",
+              "Window type",
+              choices = c("Rolling", "Expanding")
+  ),
   selectInput("sig_level",
               "Forecast interval",
               choices = c("50%", "68%", "80%", "90%")
@@ -23,11 +27,6 @@ ui <- fluidPage(
               selected = "2003:Q2",
               from_min = "2003:Q2",
               to_max = "2023:Q4"),
-  sliderInput("test_window",
-              "Test window", 
-              value = 10,
-              min = 10,
-              max = 40),
   textOutput("rmsfe"),
   plotOutput("plot")
 )
