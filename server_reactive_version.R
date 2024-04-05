@@ -176,8 +176,8 @@ server = function(input, output, session) {
     # plot_data_2 = as.data.frame(forecasts, dates2)
     
     
-    true_ts = ts(true_values, start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
-    forecast.ts = ts(forecasts, start = c(year_start_pred, quarter_start_pred), end = c(year_end, quarter_end), frequency = 4)
+    true_ts = ts(true_values, start = c(year_start_pred, quarter_start_pred), end = c(year_end, quarter_end), frequency = 4)
+    forecast.ts = ts(forecasts, start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     #upper bound interval
     #lower bound interval
     
