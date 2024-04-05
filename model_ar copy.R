@@ -118,7 +118,7 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
     temp_Y = data_cv %>%
       select(i+1) %>%
       rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-      mutate(gdp = as.numeric(gdp)) %>%
+      mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
       drop_na() %>%
       mutate(loggdp = log(gdp)) %>%
       pull(loggdp)
@@ -189,7 +189,7 @@ ar.expanding.window=function(data_cv,Y,noos,p,h){ #equality here  means default 
     temp_Y = data_cv %>%
       select(i+1) %>%
       rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-      mutate(gdp = as.numeric(gdp)) %>%
+      mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
       drop_na() %>%
       mutate(loggdp = log(gdp)) %>%
       pull(loggdp)
@@ -252,7 +252,7 @@ ar_combined = function(data_full, h, test_fn, Y) {
   no_obs = data_full %>%
     select(last_col()) %>%
     rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-    mutate(gdp = as.numeric(gdp)) %>%
+    mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
     drop_na() %>%
     mutate(loggdp = log(gdp)) %>%
     nrow()
@@ -314,7 +314,7 @@ ar_gr_combined = function(data_full, h, cv_preds, oosy, test_fn, Y) {
   no_obs = data_full %>%
     select(last_col()) %>%
     rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-    mutate(gdp = as.numeric(gdp)) %>%
+    mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
     drop_na() %>%
     mutate(loggdp = log(gdp)) %>%
     nrow()
@@ -334,7 +334,7 @@ ar_preds = sapply(1:8, function(i){
 no_obs_cv = data_full %>%
   select(50) %>%
   rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-  mutate(gdp = as.numeric(gdp)) %>%
+  mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
   drop_na() %>%
   mutate(loggdp = log(gdp)) %>%
   nrow()
@@ -460,9 +460,8 @@ adl.rolling.window=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1){ #eq
     temp_Y = data_cv %>%
       select(i+1) %>%
       rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-      mutate(gdp = as.numeric(gdp)) %>%
+      mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
       drop_na() %>%
-      #tail(80+i+1) %>%
       mutate(loggdp = log(gdp)) %>%
       pull(loggdp)
     temp_Y = as.matrix(temp_Y)
@@ -479,10 +478,10 @@ adl.rolling.window=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1){ #eq
     temp_X1 = rpc_cv %>%
       select(i+1) %>%
       rename_with(.cols = 1, ~"rpc") %>%  # renaming columns
-      mutate(rpc = as.numeric(rpc)) %>%
+      mutate(rpc = suppressWarnings(as.numeric(rpc))) %>%
       drop_na() %>%
       #tail(80+i+1) %>%
-      mutate(logrpc = log(rpc)) %>%
+      mutate(logrpc = suppressWarnings(log(rpc))) %>%
       pull(logrpc)
     temp_X1 = as.matrix(temp_X1)
     
@@ -558,8 +557,8 @@ dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x1, adl_p
   q_start = as.numeric(str_sub(start_quarter, start = 6, end = 6))
   q_end = as.numeric(str_sub(end_quarter, start = 6, end = 6))
   
-  row_start = (year_start - 1959) * 4 + q_start - 1 
-  row_end = (year_end - 1959) * 4 + q_end - 1 - 1 # additional -1 due to gdp growth transformation
+  row_start = (year_start - 1959) * 4 + q_start - 2 # earliest 1959q3 growth rate -> row 1
+  row_end = (year_end - 1959) * 4 + q_end - 2
   
   oosy = Y[c(row_start:row_end), ] # get real values
   
