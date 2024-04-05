@@ -23,7 +23,7 @@ ui <- fluidPage(
       ),
       selectInput("h",
                   "Forecast horizon",
-                  choices = c("1", "2", "3", "4")
+                  choices = c(1, 2, 3, 4)
       ),
       selectInput("model_type",
                   "Model type",
