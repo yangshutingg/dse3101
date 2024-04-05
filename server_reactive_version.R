@@ -41,13 +41,13 @@ server = function(input, output, session) {
     
     
     
-    rmsfe_line = paste("RMSFE for the best AR model (lag", best_ar_lag(), "):", round(benchmark_AR()$errors[1],4))
+    rmsfe_line = paste("RMSFE for the best AR model (lag", best_ar_lag(),"):", round(benchmark_AR()$errors[1],4))
     
     
-    mae_line = paste("MAE for the best AR model (lag", best_ar_lag(), "):", round(benchmark_AR()$errors[2],4))
+    mae_line = paste("MAE for the best AR model (lag", best_ar_lag(),"):", round(benchmark_AR()$errors[2],4))
     
     signs_wrong_line = paste("Percentage of signs predicted wrongly for the best AR model (lag", 
-                             best_ar_lag(), "):", round(benchmark_AR()$errors[3]*100,2), "%")
+                             best_ar_lag(),"):", round(benchmark_AR()$errors[3]*100,2), "%")
     
     paste(rmsfe_line, mae_line, signs_wrong_line, sep = "\n")
     
