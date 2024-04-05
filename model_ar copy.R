@@ -577,7 +577,7 @@ dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x1, adl_p
   dt.ts=ts(dt, start=c(year_start,q_start), end=c(year_end,q_end), freq=4)
   
   #Plot to examine stationarity:
-  plot.ts(dt.ts, main="Absolute Loss differential AR-ADL",cex.axis=1.8)
+  #plot.ts(dt.ts, main="Absolute Loss differential AR-ADL",cex.axis=1.8)
   
   #Regress d_t (AR-ADL) for 1-step forecasts on a constant - get estimate of mean(d_t)
   dmreg=lm(dt~1) #regression
@@ -592,3 +592,16 @@ dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x1, adl_p
 # comparing AR(2) and ADL(2, 2, 2), 1-step ahead
 dm_test(Y_recent, "2003Q2", "2005Q4", 2, 2, 2, 2, 1)
 
+dm_test2 = function(l1, l2, h) {
+  dt = l1 - l2
+  dmreg = lm(dt~1)
+  x=dmreg$coefficients/sqrt(NeweyWest(dmreg,lag=num_quarters^(1/3))) #form the DM t-statistic
+  if (num_quarters<50) {
+    x[1,1] = x[1,1]*sqrt(1+(1/num_quarters)*(1-2*h) + (1/num_quarters^2)*h*(h-1))
+  }
+  return(x[1,1]) # extract result
+}
+
+dm_test2(1, 1, 2)
+
+#pt(1.3314734, 9)

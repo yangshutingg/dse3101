@@ -27,7 +27,7 @@ ui <- fluidPage(
       ),
       selectInput("model_type",
                   "Model type",
-                  choices = c("AR", "ADL", "PCR")
+                  choices = c("AR", "ADL", "Simple Average", "Granger-Ramanathan")
       ),
       selectInput("sig_level",
                   "Forecast interval",
@@ -35,8 +35,8 @@ ui <- fluidPage(
       )
     ),
   mainPanel(
-    h4(textOutput("rmsfe")),
-    h4(textOutput("mae")),
+    h4(verbatimTextOutput("benchmark_stats")),
+    h4(verbatimTextOutput("chosen_model_stats")),
     h4(textOutput("pct_signs_wrong")),
     h4("Plot",plotOutput("plot"))
     )

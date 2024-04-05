@@ -8,62 +8,55 @@ server = function(input, output, session) {
   })
   rval_start_quarter = reactive({str_remove(input$start_quarter, ":")})
   rval_end_quarter = reactive({str_remove(input$end_quarter, ":")})
+  rval_h = reactive({as.numeric(input$h)})
   
-  start_quarter = rval_start_quarter()
-  end_quarter = rval_end_quarter()
-  data_used = rval_data_used()
-
-  
-  #dynamically choosing window type based on user input
-  cv_fn <- reactive({
-    cv_rolling
-  })
-  test_fn = reactive({
-    test_rolling
-    
-  })
   
   #reactive exp for computing AR model errors 
   rval_AR_models = reactive({
     sapply(1:8, function(i){
-      cv_fn()(data_full = data_used, Y_recent, p = i, h = input$h)
+      cv_rolling(data_full = rval_data_used(), Y_recent, p = i, h = rval_h())$errors[1]
     })
   })
   
-  AR_models = rval_AR_models()
-  AR_errors = AR_models$errors
+  rank_ar = reactive({order(rval_AR_models())})
   
-  rank_ar = reactive({
-    order(AR_errors[1,])
-  })
+  best_ar_lag = reactive({rank_ar()[1]})
   
-  best_ar_lag = reactive({
-    rank_ar()[1]
-  })
-  
-  
-  #performance metrics
-  #code
   benchmark_AR = reactive({
-    test_fn()(data_full = data_used, Y_recent, p = best_ar_lag(), h = input$h)
+    test_rolling(data_full = rval_data_used(), Y_recent, p = best_ar_lag(), h = rval_h())
   })
   
   
-  output$rmsfe = renderText({
-    paste("RMSFE for the best AR model (lag", best_ar_lag(), "):", benchmark_AR()$errors[1])
+  output$benchmark_stats = renderText({
+    start_quarter = rval_start_quarter()
+    end_quarter = rval_end_quarter()
+    data_used = rval_data_used()
+    
+    #rank_ar = order(rval_AR_models())
+    #best_ar_lag = rank_ar[1]
+    
+    
+    #performance metrics
+    #code
+    
+    
+    
+    rmsfe_line = paste("RMSFE for the best AR model (lag", best_ar_lag(), "):", benchmark_AR()$errors[1])
+    
+    
+    mae_line = paste("MAE for the best AR model (lag", best_ar_lag(), "):", benchmark_AR()$errors[2])
+    
+    signs_wrong_line = paste("Percentage of signs predicted wrongly for the best AR model (lag", 
+                             best_ar_lag(), "):", benchmark_AR()$errors[3]*100, "%")
+    
+    paste(rmsfe_line, mae_line, signs_wrong_line, sep = "\n")
+    
   })
   
-  output$mae <- renderText({
-    paste("MAE for the best AR model (lag", best_ar_lag(), "):", benchmark_AR()$errors[2])
-  })
   
-  output$pct_signs_wrong <- renderText(({
-    paste("Percentage of signs predicted wrongly for the best AR model (lag", 
-          best_ar_lag(), "):", benchmark_AR()$errors[3])
-  }))
-  build_model = function(type, h) {
+  build_model = function(type, h, best_ar_lag) {
     if (type == "AR") {
-      model = test_fn(data_used, Y_recent, p = best_ar_lag, h = h)
+      model = test_rolling(rval_data_used(), Y_recent, p = best_ar_lag, h = h)
     }
     else if (type == "ADL") {
       rval_rpc_used = reactive({
@@ -72,28 +65,26 @@ server = function(input, output, session) {
       rpc_used = rval_rpc_used()
       spread_used = X2
       #cv for ADL
-      ar_lag = best_ar_lag()
       x1_lags = c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4)
       x2_lags = c(1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4)
       combs = data.frame(x1_lags, x2_lags)
-      ADL_models = reactive({
+      ADL_errors = reactive({
         sapply(1:16, function(i){
-        cv_rolling_adl(data_full = data_used,rpc_full = rpc_used,spread = spread_used, Y_recent,p_y = ar_lag, p_x1 = combs[i,1], p_x2 = combs[i,2], h = h)
+          cv_rolling_adl(data_full = rval_data_used(),rpc_full = rpc_used,spread = spread_used, Y_recent,p_y = best_ar_lag, p_x1 = combs[i,1], p_x2 = combs[i,2], h = h)$errors[1]
+        })
       })
-      })
-      ADL_errors = ADL_models()$errors[1]
-      rank_adl = order(AR_errors[1,])
+      rank_adl = order(ADL_errors())
       
-      best_adl_lag = combs[rank_adl[1,]]
-        
+      best_adl_lag = combs[rank_adl[1],]
+      
       #test using best ADL model
-      model = test_rolling_adl(data_used, rpc_used, spread_used,Y_recent,p_y = ar_lag, p_x1 = best_adl_lag[1], p_x2 = best_adl_lag[2], h = h)
+      model = test_rolling_adl(rval_data_used(), rpc_used, spread_used,Y_recent,p_y = best_ar_lag, p_x1 = best_adl_lag[,1], p_x2 = best_adl_lag[,2], h = h)
     }
     else if (type == "Simple Average") {
-      model = ar_combined(data_used, h, test_fn(), Y_recent)
+      model = ar_combined(rval_data_used(), h, test_rolling, Y_recent)
     }
     else if (type == "Granger-Ramanathan") {
-      no_obs_cv = data_used %>%
+      no_obs_cv = rval_data_used() %>%
         select(50) %>%
         rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
         mutate(gdp = as.numeric(gdp)) %>%
@@ -101,18 +92,68 @@ server = function(input, output, session) {
         mutate(loggdp = log(gdp)) %>%
         nrow()
       oosy = Y_recent[(no_obs_cv-49):no_obs_cv+1]
-      model = ar_gr_combined(data_used, h, AR_models$pred, oosy, test_fn(), Y_recent)
+      AR_cv_preds = sapply(1:8, function(i){
+        cv_rolling(data_full = rval_data_used(), Y_recent, p = i, h = h)$pred
+      })
+      model = ar_gr_combined(rval_data_used(), h, AR_cv_preds, oosy, test_rolling, Y_recent)
     }
   }
   
-  model = reactive({build_model(input$model_type, input$h)})
+  model = reactive({build_model(input$model_type, rval_h(), best_ar_lag())})
   
-  forecasts = model()$pred
+  output$chosen_model_stats = renderText({
+    start_quarter = rval_start_quarter()
+    end_quarter = rval_end_quarter()
+    data_used = rval_data_used()
+    
+    #rank_ar = order(rval_AR_models())
+    #best_ar_lag = rank_ar[1]
+    
+    #model = reactive({build_model(input$model_type, input$h, best_ar_lag)})
+    
+    l1 = benchmark_AR()$errors[2]
+    l2 = model()$errors[2]
+    #dm_stat = dm_test2(l1, l2, rval_h())
+    
+    rmsfe_line = paste("RMSFE for the chosen model :", model()$errors[1])
+    
+    
+    mae_line = paste("MAE for the chosen model :", model()$errors[2])
+    
+    signs_wrong_line = paste("Percentage of signs predicted wrongly for the chosen model :", model()$errors[3]*100, "%")
+    
+    #dm_prob = pt(-abs(dm_stat), num_quarters-rval_h()-1)
+    #hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
+    
+    #dm_test_line = paste("We", hyp_test, "the null hypothesis of equal predictive ability as the t-statistic is", dm_stat)
+    
+    paste(rmsfe_line, mae_line, signs_wrong_line, sep = "\n")
+    
+    
+  })
+  
+  
+  
+  
+  
   
   #plot for chosen model
   #Syntax: ts(object, start=startdate, end=enddate, freq=frequency (periods per year))
   
   output$plot = renderPlot({
+    
+    start_quarter = rval_start_quarter()
+    end_quarter = rval_end_quarter()
+    data_used = rval_data_used()
+    
+    #rank_ar = order(rval_AR_models())
+    #best_ar_lag = rank_ar[1]
+    
+    #model = reactive({build_model(input$model_type, input$h, best_ar_lag)})
+    
+    forecasts = model()$pred
+    rmsfe = model()$errors[1]
+    
     rval_year_end = reactive({
       as.numeric(str_sub(end_quarter, start = 3, end = 4))})
     rval_quarter_end = reactive({as.numeric(str_sub(end_quarter, start = 6, end = 6))})
@@ -133,14 +174,18 @@ server = function(input, output, session) {
     # dates2 = tail(mse_data[1:last_obs+1,], 10)
     # plot_data = as.data.frame(c(true_values, dates1))
     # plot_data_2 = as.data.frame(forecasts, dates2)
-  
-  
+    
+    
     true_ts = ts(true_values, start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     forecast.ts = ts(forecasts, start = c(year_start_pred, quarter_start_pred), end = c(year_end, quarter_end), frequency = 4)
     #upper bound interval
     #lower bound interval
     
-    forecast_intervals = reactive({intervals(forecasts, input$sig_level, rmsfe)})
+    rval_sig_level = reactive({
+      as.numeric(str_remove(input$sig_level, "%"))/100
+    })
+    
+    forecast_intervals = reactive({intervals(forecasts, rval_sig_level(), rmsfe)})
     upper.ts = ts(forecast_intervals()[,1], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     lower.ts = ts(forecast_intervals()[,3], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     
