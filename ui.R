@@ -39,7 +39,6 @@ ui <- fluidPage(
       )
     ),
   mainPanel(
-    width = 8,
     h4(textOutput("rmsfe")),
     h4(textOutput("mae")),
     h4(textOutput("pct_signs_wrong")),
