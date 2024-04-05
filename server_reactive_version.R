@@ -34,7 +34,7 @@ server = function(input, output, session) {
   #reactive exp for computing AR model errors 
   rval_AR_models = reactive({
     sapply(1:8, function(i){
-      cv_fn()(data_full = data_used, p = i, h = input$h)
+      cv_fn()(data_full = data_used, Y_recent, p = i, h = input$h)
     })
   })
   
@@ -53,7 +53,7 @@ server = function(input, output, session) {
   #performance metrics
   #code
   benchmark_AR = reactive({
-    test_fn()(data_full = data_used, p = best_ar_lag(), h = input$h)
+    test_fn()(data_full = data_used, Y_recent, p = best_ar_lag(), h = input$h)
   })
   
   
@@ -78,9 +78,9 @@ server = function(input, output, session) {
   #   }
   # })
   
-  build_model = function(type) {
+  build_model = function(type, h) {
     if (type == "AR") {
-      model = test_fn(data_used, p = best_ar_lag, h = input$h)
+      model = test_fn(data_used, Y_recent, p = best_ar_lag, h = h)
     }
     else if (type == "ADL") {
       rval_rpc_used = reactive({
@@ -95,7 +95,7 @@ server = function(input, output, session) {
       combs = data.frame(x1_lags, x2_lags)
       ADL_models = reactive({
         sapply(1:16, function(i){
-        cv_rolling_adl(data_full = data_used,rpc_full = rpc_used,spread = spread_used, Y_recent,p_y = ar_lag, p_x1 = combs[i,1], p_x2 = combs[i,2], h = input$h)
+        cv_rolling_adl(data_full = data_used,rpc_full = rpc_used,spread = spread_used, Y_recent,p_y = ar_lag, p_x1 = combs[i,1], p_x2 = combs[i,2], h = h)
       })
       })
       ADL_errors = ADL_models()$errors[1]
@@ -104,10 +104,10 @@ server = function(input, output, session) {
       best_adl_lag = combs[rank_adl[1,]]
         
       #test using best ADL model
-      model = test_rolling_adl(data_used, rpc_used, spread_used,Y_recent,p_y = ar_lag, p_x1 = best_adl_lag[1], p_x2 = best_adl_lag[2], h = input$h)
+      model = test_rolling_adl(data_used, rpc_used, spread_used,Y_recent,p_y = ar_lag, p_x1 = best_adl_lag[1], p_x2 = best_adl_lag[2], h = h)
     }
     else if (type == "Simple Average") {
-      model = ar_combined(data_used, input$h, test_fn())
+      model = ar_combined(data_used, h, test_fn(), Y_recent)
     }
     # else if (type == "Bates-Granger") {
     #   cv_errors_ar = AR_errors[1,]
@@ -122,15 +122,17 @@ server = function(input, output, session) {
         mutate(loggdp = log(gdp)) %>%
         nrow()
       oosy = Y_recent[(no_obs_cv-49):no_obs_cv+1]
-      model = ar_gr_combined(data_used, input$h, AR_models$pred, oosy, test_fn())
+      model = ar_gr_combined(data_used, h, AR_models$pred, oosy, test_fn(), Y_recent)
     }
   }
   
-  model = reactive({build_model(input$model_type)})
+  model = reactive({build_model(input$model_type, input$h)})
   
   forecasts = model()$pred
-  rmsfe = model()$errors[1]
-  mae = model()$errors[2]
+  #output$rmsfe_chosen = model()$errors[1]
+  #output$mae_chosen = model()$errors[2]
+  #output$pct_signs_wrong_chosen = model()$errors[3]
+  
   #reactive for intervals if needed 
   # forecast_intervals <- reactive({
   #  intervals(forecasts$pred, input$sig_level, rmsfe)
@@ -198,14 +200,14 @@ server = function(input, output, session) {
     #upper bound interval
     #lower bound interval
     
-    forecast_intervals = intervals(forecasts, input$sig_level, rmsfe)
-    upper.ts = ts(forecast_intervals[,1], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
-    lower.ts = ts(forecast_intervals[,3], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
+    forecast_intervals = reactive({intervals(forecasts, input$sig_level, rmsfe)})
+    upper.ts = ts(forecast_intervals()[,1], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
+    lower.ts = ts(forecast_intervals()[,3], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     
     plot.ts(true_ts, main = "h-step Forecasts", cex.axis=1.5, lwd=1.8, col="black", ylab="GDP growth")
     points(forecast.ts, type = "l", col = "red", lwd = 1.8)
-    points(upper.ts, type = "l", col = "blue", lwd = 1.8, alpha = 0.5)
-    points(lower.ts, type = "l", col = "blue", lwd = 1.8, alpha = 0.5)
+    points(upper.ts, type = "l", col = "blue", lwd = 1.8)
+    points(lower.ts, type = "l", col = "blue", lwd = 1.8)
     legend("bottomleft", legend = c("True values", "Forecasts", "Upper bound of interval", "Lower bound of interval"))
     
   })
