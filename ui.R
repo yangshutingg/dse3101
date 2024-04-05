@@ -17,10 +17,6 @@ ui <- fluidPage(
               "Forecast interval",
               choices = c("50%", "68%", "80%", "90%")
   ),
-  selectInput("h",
-              "Forecast horizon",
-              choices = c("1", "2", "3", "4")
-  ),
   sliderTextInput("end_quarter",
               "Ending quarter",
               choices = data$DATE,
