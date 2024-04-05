@@ -47,4 +47,3 @@ ui <- fluidPage(
       tabPanel(plotOutput("plot"))
     )
   )
-)
