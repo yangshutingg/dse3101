@@ -16,19 +16,11 @@ server = function(input, output, session) {
   
   #dynamically choosing window type based on user input
   cv_fn <- reactive({
-    if(input$window == "rolling"){
-      cv_rolling
-    } else if (input$window == "expanding"){
-      cv_expanding
-    }
+    cv_rolling
   })
   test_fn = reactive({
-    if (input$window == "rolling"){
-      test_rolling
-    }
-    else if (input$window == "expanding"){
-      test_expanding
-    }
+    test_rolling
+    
   })
   
   #reactive exp for computing AR model errors 
@@ -69,7 +61,6 @@ server = function(input, output, session) {
     paste("Percentage of signs predicted wrongly for the best AR model (lag", 
           best_ar_lag(), "):", benchmark_AR()$errors[3])
   }))
-  
   build_model = function(type, h) {
     if (type == "AR") {
       model = test_fn(data_used, Y_recent, p = best_ar_lag, h = h)
