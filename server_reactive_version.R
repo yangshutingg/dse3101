@@ -167,8 +167,12 @@ server = function(input, output, session) {
     
     year_start_pred = year_start - 2
     quarter_start_pred = quarter_start
-    last_obs = data_used %>% select(last_col()) %>% rename_with(.cols = 1, ~"gdp") %>%
-      filter(!is.na(as.numeric(gdp))) %>% nrow()
+    last_obs = data_used %>% 
+      select(last_col()) %>% 
+      rename_with(.cols = 1, ~"gdp") %>%
+      mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
+      drop_na() %>%
+      nrow()
     true_values = tail(Y_recent[1:last_obs+1,], num_quarters+8) #add some context before test window
     # dates1 = tail(mse_data[1:last_obs+1,], 15)
     # dates2 = tail(mse_data[1:last_obs+1,], 10)
