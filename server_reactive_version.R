@@ -109,10 +109,6 @@ server = function(input, output, session) {
     else if (type == "Simple Average") {
       model = ar_combined(data_used, h, test_fn(), Y_recent)
     }
-    # else if (type == "Bates-Granger") {
-    #   cv_errors_ar = AR_errors[1,]
-    #   model = ar_combined_bg(data_used, input$h, cv_errors_ar, test_fn())
-    # }
     else if (type == "Granger-Ramanathan") {
       no_obs_cv = data_used %>%
         select(50) %>%
@@ -129,45 +125,6 @@ server = function(input, output, session) {
   model = reactive({build_model(input$model_type, input$h)})
   
   forecasts = model()$pred
-  #output$rmsfe_chosen = model()$errors[1]
-  #output$mae_chosen = model()$errors[2]
-  #output$pct_signs_wrong_chosen = model()$errors[3]
-  
-  #reactive for intervals if needed 
-  # forecast_intervals <- reactive({
-  #  intervals(forecasts$pred, input$sig_level, rmsfe)
-  # })
-  
-  #reactive plot 
-  # output$plot <- renderPlot({
-  #   preds <- forecasts()$pred
-  #   year_start <- year_end() - ifelse(quarter_end() > 2, 3, 4)
-  #   quarter_start <- ifelse(quarter_end() == 1, 3, 
-  #                           ifelse(quarter_end() == 2, 4, 
-  #                                  ifelse(quarter_end() == 3, 1, 2)))
-  #   year_start_pred <- year_end() - ifelse(quarter_end() > 3, 2, 3)
-  #   quarter_start_pred <- ifelse(quarter_end() == 1, 4, 
-  #                                ifelse(quarter_end() == 2, 1, 
-  #                                       ifelse(quarter_end() == 3, 2, 3)))
-  #   true_ts <- ts(true_values(), start = c(year_start, quarter_start), end = c(year_end(), quarter_end()), frequency = 4)
-  #   forecast_ts <- ts(preds, start = c(year_start_pred, quarter_start_pred), end = c(year_end(), quarter_end()), frequency = 4)
-  #   
-  #   plot.ts(true_ts, main = "h-step Forecasts", col = "black", ylab = "GDP growth")
-  #   lines(forecast_ts, col = "red", lwd = 1.8)
-  #   
-  #   # Add intervals to the plot if they are part of the output
-  #   if (input$model_type == "AR" && !is.null(forecast_intervals())) {
-  #     upper_ts <- ts(forecast_intervals()[,1], start = c(year_start_pred, quarter_start_pred), end = c(year_end(), quarter_end()), frequency = 4)
-  #     lower_ts <- ts(forecast_intervals()[,3], start = c(year_start_pred, quarter_start_pred), end = c(year_end(), quarter_end()), frequency = 4)
-  #     
-  #     lines(upper_ts, col = "blue", lwd = 1.8)
-  #     lines(lower_ts, col = "blue", lwd = 1.8)
-  #   }
-  #   
-  #   legend("bottomleft", legend = c("True values", "Forecasts", "Upper bound of interval", "Lower bound of interval"), 
-  #          col = c("black", "red", "blue", "blue"), lwd = 1.8, bty = "n")
-  # })
-  
   
   #plot for chosen model
   #Syntax: ts(object, start=startdate, end=enddate, freq=frequency (periods per year))
