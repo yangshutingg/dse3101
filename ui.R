@@ -39,8 +39,12 @@ ui <- fluidPage(
       )
     )
   ),
-  textOutput("rmsfe"),
-  textOutput("mae"),
-  textOutput("pct_signs_wrong"),
-  plotOutput("plot")
+  mainPanel(
+    tabsetPanel(
+      tabPanel(textOutput("rmsfe")),
+      tabPanel(textOutput("mae")),
+      tabPanel(textOutput("pct_signs_wrong")),
+      tabPanel(plotOutput("plot"))
+    )
+  )
 )
