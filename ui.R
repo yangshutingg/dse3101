@@ -24,5 +24,7 @@ ui <- fluidPage(
               from_min = "2003:Q2",
               to_max = "2023:Q4"),
   textOutput("rmsfe"),
+  textOutput("mae"),
+  textOutput("pct_signs_wrong"),
   plotOutput("plot")
 )
