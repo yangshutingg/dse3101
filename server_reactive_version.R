@@ -70,14 +70,6 @@ server = function(input, output, session) {
           best_ar_lag(), "):", benchmark_AR()$errors[3])
   }))
   
-  #get h-step forecasts for test window
-  # model <- reactive({
-  #   if (input$model_type == "AR") {
-  #     test_fn()(data_used(), best_ar_lag(), input$h)
-  #     list(pred = model$pred, error = model$error)
-  #   }
-  # })
-  
   build_model = function(type, h) {
     if (type == "AR") {
       model = test_fn(data_used, Y_recent, p = best_ar_lag, h = h)
