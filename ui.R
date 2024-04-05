@@ -4,7 +4,7 @@ library(shinythemes)
 
 ui <- fluidPage(
   titlePanel("Benchmarking of economic models"),
-  shinythemes::themeSelector(),
+  theme = shinytheme("readable"),
   sidebarLayout(
     sidebarPanel(
       sliderTextInput("start_quarter",
