@@ -43,7 +43,7 @@ ui <- fluidPage(
     h4(textOutput("rmsfe")),
     h4(textOutput("mae")),
     h4(textOutput("pct_signs_wrong")),
-    h4(plotOutput("plot"))
+    h4("Plot",plotOutput("plot"))
     )
   )
 )
