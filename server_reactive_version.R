@@ -191,8 +191,8 @@ server = function(input, output, session) {
     
     plot.ts(true_ts, main = "h-step Forecasts", cex.axis=1.5, lwd=1.8, col="black", ylab="GDP growth")
     points(forecast.ts, type = "l", col = "red", lwd = 1.8)
-    points(upper.ts, type = "l", col = "lightblue", lwd = 1.8)
-    points(lower.ts, type = "l", col = "lightblue", lwd = 1.8)
+    points(upper.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
+    points(lower.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
     legend("bottomleft", 
            legend = c("True values", "Forecasts", "Upper Confidence Bound", "Lower Confidence Bound"), 
            col = c("black", "red", "lightblue", "lightblue"), 
