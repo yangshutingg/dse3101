@@ -41,13 +41,13 @@ server = function(input, output, session) {
     
     
     
-    rmsfe_line = paste("RMSFE for the best AR model (lag", best_ar_lag(), "):", benchmark_AR()$errors[1])
+    rmsfe_line = paste("RMSFE for the best AR model (lag", best_ar_lag(), "):", round(benchmark_AR()$errors[1],4))
     
     
-    mae_line = paste("MAE for the best AR model (lag", best_ar_lag(), "):", benchmark_AR()$errors[2])
+    mae_line = paste("MAE for the best AR model (lag", best_ar_lag(), "):", round(benchmark_AR()$errors[2],4))
     
     signs_wrong_line = paste("Percentage of signs predicted wrongly for the best AR model (lag", 
-                             best_ar_lag(), "):", benchmark_AR()$errors[3]*100, "%")
+                             best_ar_lag(), "):", round(benchmark_AR()$errors[3]*100,2), "%")
     
     paste(rmsfe_line, mae_line, signs_wrong_line, sep = "\n")
     
@@ -115,12 +115,12 @@ server = function(input, output, session) {
     l2 = model()$errors[2]
     #dm_stat = dm_test2(l1, l2, rval_h())
     
-    rmsfe_line = paste("RMSFE for the chosen model :", model()$errors[1])
+    rmsfe_line = paste("RMSFE for the chosen model :", round(model()$errors[1], 4))
     
     
-    mae_line = paste("MAE for the chosen model :", model()$errors[2])
+    mae_line = paste("MAE for the chosen model :", round(model()$errors[2], 4))
     
-    signs_wrong_line = paste("Percentage of signs predicted wrongly for the chosen model :", model()$errors[3]*100, "%")
+    signs_wrong_line = paste("Percentage of signs predicted wrongly for the chosen model :", round(model()$errors[3]*100, 2), "%")
     
     #dm_prob = pt(-abs(dm_stat), num_quarters-rval_h()-1)
     #hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
