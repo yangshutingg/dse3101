@@ -164,7 +164,7 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
 cv_rolling = function(data_full, Y, noos = 50, p, h){
   data_cv = data_full %>%
     select(c(1, 2:51))
-  return(ar.rolling.window(data_cv, Y, noos=50, p, h))
+  return(ar.rolling.window(data_cv, Y = Y, noos=50, p, h))
 }
 
 ar12=cv_rolling(data_full,Y_recent,noos=50,2,1) #1-step POOS AR(2) forecast
@@ -172,7 +172,7 @@ ar12=cv_rolling(data_full,Y_recent,noos=50,2,1) #1-step POOS AR(2) forecast
 test_rolling = function(data_full, Y, noos = num_quarters, p, h){
   data_test = data_full %>%
     select(c(1, 52:ncol(data_full)))
-  return(ar.rolling.window(data_test, Y, noos = num_quarters, p, h))
+  return(ar.rolling.window(data_test, Y=Y, noos = num_quarters, p, h))
 }
 
 ar12=test_rolling(data_full,Y_recent,num_quarters,2,1) #1-step POOS AR(2) forecast
@@ -330,7 +330,7 @@ ar_gr_combined = function(data_full, h, cv_preds, oosy, test_fn, Y) {
 }
 
 ar_preds = sapply(1:8, function(i){
-  cv_rolling(data_full, p = i, h = 1)$pred})
+  cv_rolling(data_full, Y_recent, p = i, h = 1)$pred})
 no_obs_cv = data_full %>%
   select(50) %>%
   rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
@@ -354,7 +354,7 @@ intervals = function(x, p, rmsfe) {
 int = intervals(ar12$pred, 0.5, ar12$errors[1])
 int[,3]
 int$lower
-true_ts = ts(tail(Y, 15), start = c(20, 3), end = c(24, 1), frequency = 4)
+true_ts = ts(tail(Y_recent, 15), start = c(20, 3), end = c(24, 1), frequency = 4)
 forecast.ts = ts(ar1.1$pred, start = c(21, 4), end = c(24, 1), frequency = 4)
 forecast.ts1 = ts(ar1.1$pred, start = c(20, 3), end = c(24, 1), frequency = 4)
 plot.ts(true_ts)
@@ -547,9 +547,10 @@ adl22=test_rolling_adl(data_full,rpc_full,X2,Y_recent,num_quarters,3,2,2,1) #1-s
 # DM test - between AR and ADL
 # output: t-statistic and plot
 
-dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x, h) {
+dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x1, adl_p_x2, h) {
   data_full = get_data(start_quarter, end_quarter)
   rpc_full = get_data_rpc(start_quarter, end_quarter)
+  spread = X2
   
   # earliest possible start: 1959Q2, latest end: 2023q4
   year_start = as.numeric(str_sub(start_quarter, start = 1, end = 4))
@@ -566,7 +567,7 @@ dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x, h) {
   #Compute absolute loss of AR model
   lar = abs(oosy-ar$pred)
   
-  adl = test_rolling_adl(data_full, rpc_full, Y, num_quarters, adl_p_y, adl_p_x, h)
+  adl = test_rolling_adl(data_full, rpc_full, spread, Y, num_quarters, adl_p_y, adl_p_x1, adl_p_x2, h)
   #Compute absolute loss of ADL model
   ladl = abs(oosy-adl$pred)
   
@@ -589,6 +590,6 @@ dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x, h) {
   return(x[1,1]) # extract result
 }
 
-# comparing AR(2) and ADL(2, 2), 1-step ahead
-dm_test(Y, "2003Q2", "2005Q4", 2, 2, 2, 1)
+# comparing AR(2) and ADL(2, 2, 2), 1-step ahead
+dm_test(Y_recent, "2003Q2", "2005Q4", 2, 2, 2, 2, 1)
 
