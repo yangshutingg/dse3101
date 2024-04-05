@@ -37,14 +37,14 @@ ui <- fluidPage(
                   "Forecast interval",
                   choices = c("50%", "68%", "80%", "90%")
       )
-    )
-  ),
+    ),
   mainPanel(
     tabsetPanel(
       tabPanel(textOutput("rmsfe")),
       tabPanel(textOutput("mae")),
       tabPanel(textOutput("pct_signs_wrong")),
       tabPanel(plotOutput("plot"))
+      )
     )
   )
 )
