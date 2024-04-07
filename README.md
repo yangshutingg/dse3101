@@ -1,36 +1,15 @@
-# Project Title
+# Benchmarking Economic Models with Shiny
 
-One Paragraph of project description goes here
+## Introduction
+This Shiny application is designed for benchmarking different economic forecasting models. Users can select start and end quarters, set forecast horizons, and choose between various economic model types such as AR, ADL, and more. The application then visualizes the forecasted economic indicators and compares the performance of the selected models.
 
-## Getting Started
+## Installation
 
-The aim of this project is to evaluate macroeconomic forecasting models in a realistic setting that properly accounts for data revisions.
+Before running the application, ensure you have R installed on your system. The application requires several R packages which can be installed with the following commands:
 
-### Prerequisites
+```R
+install.packages(c("readxl", "tidyverse", "zoo", "sandwich", "lsei", "shiny", "shinyWidgets", "shinythemes"))
 
-What things you need to install the software and how to install them
-
-```
-Give examples
-```
-
-### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
-```
-Give the example
-```
-
-And repeat
-
-```
-until finished
-```
-
-End with an example of getting some data out of the system or using it for a little demo
 
 ## Running the tests
 
