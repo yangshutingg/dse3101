@@ -55,7 +55,7 @@ get_data = function(start_q, end_q) {
 }
 
 data_full = get_data("2003Q2","2005Q4")
-data_full = get_data("2018Q1","2023Q4")
+# data_full = get_data("2018Q1","2023Q4")
 
 fitAR=function(Y,p,h){
   
@@ -95,7 +95,7 @@ data_most_recent = mse_data %>% # extract last column
 
 temp=embed(data_most_recent$loggdp,2) #create lag of log(GDP) and align the original series
 
-Y=as.matrix(400*(temp[,1]-temp[,2])) #GDP growth via log difference
+Y_recent=as.matrix(400*(temp[,1]-temp[,2])) #GDP growth via log difference
 
 # covid dummy AR
 fitAR_dummy=function(Y,p,h){
@@ -149,12 +149,13 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
   save.coef=matrix(NA,noos,p+1) #blank matrix for coefficients at each iteration (3=constant+ 2 lags)
   save.pred=matrix(NA,noos,1) #blank for forecasts
   real=matrix(NA,noos,1)
+  sign=matrix(NA,noos,1)
   for(i in 1:noos){ 
     # get real-time data
     temp_Y = data_cv %>%
       select(i+1) %>%
       rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-      mutate(gdp = as.numeric(gdp)) %>%
+      mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
       drop_na() %>%
       mutate(loggdp = log(gdp)) %>%
       pull(loggdp)
@@ -186,7 +187,8 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
   
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
-  errors=c("rmse"=rmse,"mae"=mae) #stack errors in a vector
+  signs = sum(sign)/noos #no of signs predicted wrongly
+  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
   
   return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
@@ -198,12 +200,13 @@ ar.rolling.window_covid=function(data_test,Y,noos=num_quarters,p,h){ #equality h
   save.coef=matrix(NA,noos,p+1+2) #blank matrix for coefficients at each iteration (3=constant+ 2 lags), +2 for dummy
   save.pred=matrix(NA,noos,1) #blank for forecasts
   real=matrix(NA,noos,1)
+  sign=matrix(NA,noos,1)
   for(i in 1:noos){ 
     # get real-time data
     temp_Y = data_test %>%
       select(i+1) %>%
       rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-      mutate(gdp = as.numeric(gdp)) %>%
+      mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
       drop_na() %>%
       mutate(loggdp = log(gdp)) %>%
       pull(loggdp)
@@ -251,7 +254,8 @@ ar.rolling.window_covid=function(data_test,Y,noos=num_quarters,p,h){ #equality h
   
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
-  errors=c("rmse"=rmse,"mae"=mae) #stack errors in a vector
+  signs = sum(sign)/noos #no of signs predicted wrongly
+  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
   
   return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
@@ -264,10 +268,10 @@ ar.rolling.window_covid=function(data_test,Y,noos=num_quarters,p,h){ #equality h
 cv_rolling = function(data_full, Y, noos = 50, p, h){
   data_cv = data_full %>%
     select(c(1, 2:51))
-  return(ar.rolling.window(data_cv, Y, noos=50, p, h))
+  return(ar.rolling.window(data_cv, Y = Y, noos=50, p, h))
 }
 
-ar12=cv_rolling(data_full,Y,noos=50,2,1) #1-step POOS AR(2) forecast
+ar12=cv_rolling(data_full,Y_recent,noos=50,2,1) #1-step POOS AR(2) forecast
 
 test_rolling = function(data_full, Y, noos = num_quarters, p, h){
   data_test = data_full %>%
@@ -285,7 +289,7 @@ test_rolling = function(data_full, Y, noos = num_quarters, p, h){
 #   return(ar.rolling.window(data_test, Y, noos = num_quarters, p, h))
 # }
 
-ar12=test_rolling(data_full,Y,num_quarters,2,1) #1-step POOS AR(2) forecast
+ar12=test_rolling(data_full,Y_recent,num_quarters,2,1) #1-step POOS AR(2) forecast
 
 
 
@@ -397,16 +401,16 @@ intervals = function(x, p, rmsfe) {
   return(boundaries)
 }
 
-int = intervals(ar1.1$pred, 0.95, ar1.1$errors[1])
-int[,3]
-int$lower
-true_ts = ts(tail(Y, 15), start = c(20, 3), end = c(24, 1), frequency = 4)
-forecast.ts = ts(ar1.1$pred, start = c(21, 4), end = c(24, 1), frequency = 4)
-forecast.ts1 = ts(ar1.1$pred, start = c(20, 3), end = c(24, 1), frequency = 4)
-plot.ts(true_ts)
-points(forecast.ts, type = "l", col = "red")
-points(forecast.ts)
-plot(forecast.ts)
+# int = intervals(ar1.1$pred, 0.95, ar1.1$errors[1])
+# int[,3]
+# int$lower
+# true_ts = ts(tail(Y, 15), start = c(20, 3), end = c(24, 1), frequency = 4)
+# forecast.ts = ts(ar1.1$pred, start = c(21, 4), end = c(24, 1), frequency = 4)
+# forecast.ts1 = ts(ar1.1$pred, start = c(20, 3), end = c(24, 1), frequency = 4)
+# plot.ts(true_ts)
+# points(forecast.ts, type = "l", col = "red")
+# points(forecast.ts)
+# plot(forecast.ts)
 
 
 
