@@ -212,7 +212,16 @@ server = function(input, output, session) {
            lty = 1, 
            cex = 0.8)
   })
-  
+  output$quarter_error_message <- renderText({
+    start_quarter <- gsub(":Q", ".", input$start_quarter)
+    end_quarter <- gsub(":Q", ".", input$end_quarter)
+    
+    if (as.numeric(start_quarter) > as.numeric(end_quarter)) {
+      "The starting quarter must be before the ending quarter. Please select again."
+    } else {
+      ""
+    }
+  })
 }
 
 #add more performance metrics 

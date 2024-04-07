@@ -35,10 +35,11 @@ ui <- fluidPage(
       )
     ),
   mainPanel(
+    h4(textOutput("quarter_error_message")),
     h4(verbatimTextOutput("benchmark_stats")),
     h4(verbatimTextOutput("chosen_model_stats")),
     h4(textOutput("pct_signs_wrong")),
-    h4("Plot",plotOutput("plot"))
+    h4(plotOutput("plot"))
     )
   )
 )
