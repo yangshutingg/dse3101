@@ -188,9 +188,10 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
   signs = sum(sign)/noos #no of signs predicted wrongly
+  abs_errors = abs(real-save.pred)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
   
-  return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
+  return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real,"abs_loss" = abs_errors)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
 
 
@@ -255,9 +256,10 @@ ar.rolling.window_covid=function(data_test,Y,noos=num_quarters,p,h){ #equality h
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
   signs = sum(sign)/noos #no of signs predicted wrongly
+  abs_errors = abs(real-save.pred)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
   
-  return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
+  return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real,"abs_loss" = abs_errors)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
 
 
@@ -313,8 +315,9 @@ ar_combined = function(data_full, h, test_fn, Y) {
                                                       ifelse(AR_simple_combined[i]>0, 0, 1), 
                                                       ifelse(AR_simple_combined[i]>0, 1, 0))})
   signs = sum(sign)/nrow(AR_preds)
+  abs_errors = abs(real-AR_simple_combined)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
-  return(list("pred" = AR_simple_combined, "errors" = errors,"real"=real))
+  return(list("pred" = AR_simple_combined, "errors" = errors,"real"=real, "abs_loss" = abs_errors))
 }
 
 AR_combined1 = ar_combined(data_full, 1, test_rolling, Y_recent)
@@ -375,8 +378,9 @@ ar_gr_combined = function(data_full, h, cv_preds, oosy, test_fn, Y) {
                                                       ifelse(AR_gr_combined[i]>0, 0, 1), 
                                                       ifelse(AR_gr_combined[i]>0, 1, 0))})
   signs = sum(sign)/nrow(AR_preds)
+  abs_errors = abs(real-AR_gr_combined)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
-  return(list("pred" = AR_gr_combined, "errors" = errors))
+  return(list("pred" = AR_gr_combined, "errors" = errors,"real"=real, "abs_loss"=abs_errors))
 }
 
 ar_preds = sapply(1:8, function(i){
@@ -563,9 +567,10 @@ adl.rolling.window=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1){ #eq
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
   signs=sum(sign)/noos
+  abs_errors = abs(real-save.pred)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
   
-  return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
+  return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real,"abs_loss"=abs_errors,"lags"=c(p_y,p_x1,p_x2))) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
 
 adl_rolling_test = adl.rolling.window(data_full, rpc_full, X2, Y_recent, 50, 2, 2,2)
@@ -643,16 +648,22 @@ dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x1, adl_p
 # comparing AR(2) and ADL(2, 2, 2), 1-step ahead
 dm_test(Y_recent, "2003Q2", "2005Q4", 2, 2, 2, 2, 1)
 
-# dm_test2 = function(l1, l2, h) {
-#   dt = l1 - l2
-#   dmreg = lm(dt~1)
-#   x=dmreg$coefficients/sqrt(NeweyWest(dmreg,lag=num_quarters^(1/3))) #form the DM t-statistic
-#   if (num_quarters<50) {
-#     x[1,1] = x[1,1]*sqrt(1+(1/num_quarters)*(1-2*h) + (1/num_quarters^2)*h*(h-1))
-#   }
-#   return(x[1,1]) # extract result
-# }
+dm_test2 = function(l1, l2, h) {
+  dt = l1 - l2
+  dmreg = lm(dt~1)
+  x=dmreg$coefficients/sqrt(NeweyWest(dmreg,lag=num_quarters^(1/3))) #form the DM t-statistic
+  if (num_quarters<50) {
+    x[1,1] = x[1,1]*sqrt(1+(1/num_quarters)*(1-2*h) + (1/num_quarters^2)*h*(h-1))
+  }
+  return(x[1,1]) # extract result
+}
 
-#dm_test2(1, 1, 2)
+dm_test2(ar12$abs_loss, AR_combined1$abs_loss, 1)
 
-#pt(1.3314734, 9)
+dm_test2(c(0.9, 0.8, 0.7, 1.2,1), c(0.9, 0.8, 0.7, 1.2,1), 1)
+num_quarters = 2
+dm_test2(c(1,0.5,0.8), c(1.2,0.8,1.3), 2)
+
+pt(-2.105442, 9)
+pt(NA, 9)
+

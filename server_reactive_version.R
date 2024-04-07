@@ -111,9 +111,17 @@ server = function(input, output, session) {
     
     #model = reactive({build_model(input$model_type, input$h, best_ar_lag)})
     
-    l1 = benchmark_AR()$errors[2]
-    l2 = model()$errors[2]
-    #dm_stat = dm_test2(l1, l2, rval_h())
+    l1 = benchmark_AR()$abs_loss
+    l2 = model()$abs_loss
+    dm_stat = ifelse(input$model_type == "AR", NA, dm_test2(l1, l2, rval_h()))
+    #dm_stat = 1.3
+    
+    model_type_line = reactive({
+      ifelse(input$model_type == "AR", paste0("The chosen model is AR(", best_ar_lag(), ")"), 
+             ifelse(input$model_type == "ADL", paste0("The chosen model is ADL(", model()$lags[1], " ,", model()$lags[2], " ,", model()$lags[3], ")"), 
+                    paste0("The chosen model is ", input$model_type)))
+    })
+    
     
     rmsfe_line = paste("RMSFE for the chosen model:", round(model()$errors[1], 4))
     
@@ -122,12 +130,12 @@ server = function(input, output, session) {
     
     signs_wrong_line = paste("Percentage of signs predicted wrongly for the chosen model:", round(model()$errors[3]*100, 2), "%")
     
-    #dm_prob = pt(-abs(dm_stat), num_quarters-rval_h()-1)
-    #hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
+    dm_prob = pt(-abs(dm_stat), num_quarters-rval_h()-1)
+    hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
     
-    #dm_test_line = paste("We", hyp_test, "the null hypothesis of equal predictive ability as the t-statistic is", dm_stat)
+    dm_test_line = ifelse(is.na(hyp_test), "", paste("We", hyp_test, "the null hypothesis of equal predictive ability as the t-statistic is", round(dm_stat,2)))
     
-    paste(rmsfe_line, mae_line, signs_wrong_line, sep = "\n")
+    paste(model_type_line(), rmsfe_line, mae_line, signs_wrong_line, dm_test_line, sep = "\n")
     
     
   })
@@ -173,6 +181,7 @@ server = function(input, output, session) {
       mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
       drop_na() %>%
       nrow()
+    last_obs = ifelse(last_obs == 258, 257, last_obs)
     true_values = tail(Y_recent[1:last_obs+1,], num_quarters+8) #add some context before test window
     # dates1 = tail(mse_data[1:last_obs+1,], 15)
     # dates2 = tail(mse_data[1:last_obs+1,], 10)
