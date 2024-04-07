@@ -10,15 +10,6 @@ Before running the application, ensure you have R installed on your system. The 
 ```R
 install.packages(c("readxl", "tidyverse", "zoo", "sandwich", "lsei", "shiny", "shinyWidgets", "shinythemes"))
 
-
-## Running the tests
-
-Explain how to run the automated tests for this system
-
-### Break down into end to end tests
-
-Explain what these tests test and why
-
 ```
 Give an example
 ```
