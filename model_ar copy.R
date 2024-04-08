@@ -54,8 +54,9 @@ get_data = function(start_q, end_q) {
   return(data_full)
 }
 
-data_full = get_data("2003Q2","2005Q4")
+# data_full = get_data("2003Q2","2005Q4")
 # data_full = get_data("2018Q1","2023Q4")
+data_full = get_data("2020Q4", "2023Q4")
 
 fitAR=function(Y,p,h){
   
@@ -196,7 +197,7 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
 
 
 # testing with dummy - rolling window, added covid dummy variable for 2020q1 to q3 gdp growth rate
-ar.rolling.window_covid=function(data_test,Y,noos=num_quarters,p,h){ #equality here  means default inputs
+ar.rolling.window_covid=function(data_test,Y,noos,p,h){ #equality here  means default inputs
   
   save.coef=matrix(NA,noos,p+1+2) #blank matrix for coefficients at each iteration (3=constant+ 2 lags), +2 for dummy
   save.pred=matrix(NA,noos,1) #blank for forecasts
@@ -270,7 +271,11 @@ ar.rolling.window_covid=function(data_test,Y,noos=num_quarters,p,h){ #equality h
 cv_rolling = function(data_full, Y, noos = 50, p, h){
   data_cv = data_full %>%
     select(c(1, 2:51))
-  return(ar.rolling.window(data_cv, Y = Y, noos=50, p, h))
+  if (start_index>=2020.5) {
+    return(ar.rolling.window_covid(data_cv, Y, noos = 50, p, h))
+  } else {
+    return(ar.rolling.window(data_cv, Y = Y, noos=50, p, h))
+  }
 }
 
 ar12=cv_rolling(data_full,Y_recent,noos=50,2,1) #1-step POOS AR(2) forecast
@@ -448,7 +453,9 @@ get_data_rpc = function(start_q, end_q) {
   return(rpc_full)
 }
 
-rpc_full = get_data_rpc("2003Q2","2005Q4")
+# rpc_full = get_data_rpc("2003Q2","2005Q4")
+# rpc_full = get_data_rpc("2018Q1", "2023Q4")
+rpc_full = get_data_rpc("2020Q4", "2023Q4")
 
 
 fitADL=function(Y,X1,X2,p_y,p_x1,p_x2,h){
@@ -501,6 +508,71 @@ fitADL=function(Y,X1,X2,p_y,p_x1,p_x2,h){
   rmsfe=sqrt(sum(model$residuals^2)/nrow(X)) #get unadjusted rmsfe (ignoring estimation uncertainty)
   
   return(list("model"=model,"pred"=pred,"coef"=coef, "rmsfe"=rmsfe)) #save estimated AR regression, prediction, and estimated coefficients
+}
+
+
+fitADL_dummy=function(Y,X1,X2,p_y,p_x1,p_x2,h){
+  
+  max_lags = max(p_y, p_x1, p_x2)
+  
+  dum_neg=Y[, 3] # extract dummy
+  dum_pos=Y[, 4]
+  date = Y[, 2]
+  Y=Y[, 1] #data without the dummy, gdp growth
+  Y = as.matrix(Y)
+  
+  aux=embed(Y,p_y+h) #create 2 lags + forecast horizon shift (=h option)
+  y=aux[,1] #  Y variable aligned/adjusted for missing data due to lags
+  lags_y=as.matrix(aux[,-c(1:(ncol(Y)*h))]) # lags of Y (predictors) corresponding to forecast horizon (prevent leakage)  
+  diff = max_lags - p_y + 1
+  y = y[diff:length(y)]
+  lags_y = as.matrix(lags_y[diff:nrow(lags_y),])
+  
+  
+  aux_x1=embed(X1,p_x1+h) # create lags for x1
+  lags_x1=as.matrix(aux_x1[,-c(1:(ncol(X1)*h))]) # lags of x1
+  diff = max_lags - p_x1 + 1
+  lags_x1 = as.matrix(lags_x1[diff:nrow(lags_x1),])
+  #print(nrow(lags_x1))
+  
+  aux_x2 = embed(X2, p_x2+h)
+  lags_x2 = as.matrix(aux_x2[, -c(1:h)])
+  diff = max_lags - p_x2 + 1
+  lags_x2 = as.matrix(lags_x2[diff:nrow(lags_x2),])
+  #print(nrow(lags_x2))
+  
+  X = cbind(lags_y, lags_x1, lags_x2) # column binding all the predictors (lags of Y and lags of X1)
+  
+  dum_neg=tail(dum_neg,nrow(X)) #cut the dummy to size to account for lost observations due to lags
+  dum_pos=tail(dum_pos,nrow(X))
+  
+  if(h==1){ 
+    new_y = matrix(tail(aux,1)[1:ncol(lags_y)],nrow=1) # extract y_t, y_t-1...
+    new_x1 = matrix(tail(aux_x1,1)[1:ncol(lags_x1)],nrow=1) # extract x_t, x_t-1...
+    new_x2 = matrix(tail(aux_x2, 1)[1:ncol(lags_x2)], nrow = 1)
+    X.out=c(new_y, new_x1, new_x2) #retrieve last p observations if one-step forecast 
+  }else{
+    temp_y=aux[,-c(1:(ncol(Y)*(h-1)))] #delete first (h-1) columns of aux
+    temp_x1=aux_x1[,-c(1:(ncol(X1)*(h-1)))] #delete first (h-1) columns of aux_x1
+    temp_x2 = aux_x2[,-c(1:(ncol(X2)*(h-1)))]
+    new_y = matrix(tail(temp_y,1)[1:ncol(lags_y)],nrow=1)
+    new_x1 = matrix(tail(temp_x1,1)[1:ncol(lags_x1)],nrow=1)
+    new_x2 = matrix(tail(temp_x2,1)[1:ncol(lags_x2)],nrow=1)
+    X.out=c(new_y,new_x1,new_x2) #last p observations to predict T+1 
+  }
+  
+  model=lm(y~X+dum_neg+dum_pos) #estimate direct h-step AR(p) by OLS with the dummy
+  coef=coef(model)[1:(ncol(X)+1)] #extract coefficients
+  
+  pred=c(1,X.out)%*%coef #make a forecast using the last few observations: a direct h-step forecast.
+  #note the addition of a constant to the test observation vector
+  
+  rmsfe=sqrt(sum(model$residuals^2)/nrow(X)) #get unadjusted rmsfe (ignoring estimation uncertainty)
+  
+  full_coef = model$coefficients
+  full_coef[is.na(full_coef)] = 0 # replace NA with 0 for dummy not used
+  
+  return(list("model"=model,"pred"=pred,"coef"=full_coef, "rmsfe"=rmsfe)) #save estimated AR regression, prediction, and estimated coefficients
 }
 
 # cross validation - rolling window, adjusted code to add p as a parameter
@@ -573,6 +645,87 @@ adl.rolling.window=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1){ #eq
   return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real,"abs_loss"=abs_errors,"lags"=c(p_y,p_x1,p_x2))) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
 
+
+adl.rolling.window_covid=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1){ #equality here  means default inputs
+  
+  save.coef=matrix(NA,noos,p_y+p_x1+p_x2+1+2) #blank matrix for coefficients at each iteration (3=constant+ 2 lags), +2 for dummy
+  save.pred=matrix(NA,noos,1) #blank for forecasts
+  real=matrix(NA,noos,1)
+  sign=matrix(NA,noos,1)
+  for(i in 1:noos){ 
+    # get real-time data
+    temp_Y = data_cv %>%
+      select(i+1) %>%
+      rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
+      mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
+      drop_na() %>%
+      mutate(loggdp = log(gdp)) %>%
+      pull(loggdp)
+    temp_Y = as.matrix(temp_Y)
+    
+    temp_Y = temp_Y[i:nrow(temp_Y),]
+    
+    temp=embed(temp_Y,2) #create lag of log(GDP) and align the original series
+    #with it for the available
+    Y.mat=as.matrix(400*(temp[,1]-temp[,2])) #GDP growth via log difference
+    no_qtrs = nrow(Y.mat)+i-1
+    #print(nrow(Y.window))
+    
+    Y.window=data.frame(400*(temp[,1]-temp[,2])) %>% #GDP growth via log difference
+      rename_with(.cols = 1, ~"gdpgrowth")
+    Y.window$date = seq(1959.75+(i-1)*0.25, by = 0.25, length.out = nrow(Y.window)) # add time column
+    Y.window$dummy_neg = ifelse(Y.window$date == 2020.5, 1, 0)
+    Y.window$dummy_pos = ifelse(Y.window$date == 2020.75, 1, 0)
+    
+    temp_X1 = rpc_cv %>%
+      select(i+1) %>%
+      rename_with(.cols = 1, ~"rpc") %>%  # renaming columns
+      mutate(rpc = suppressWarnings(as.numeric(rpc))) %>%
+      drop_na() %>%
+      #tail(80+i+1) %>%
+      mutate(logrpc = suppressWarnings(log(rpc))) %>%
+      pull(logrpc)
+    temp_X1 = as.matrix(temp_X1)
+    
+    temp_X1 = temp_X1[i:nrow(temp_X1),]
+    
+    tempX1=embed(temp_X1,2) #create lag of log(rpc) and align the original series
+    X1.window=as.matrix(400*(tempX1[,1]-tempX1[,2])) #rpc growth via log difference
+    #print(nrow(X1.window))
+    
+    X2.window = as.matrix(spread[i:no_qtrs])
+    #print(nrow(X2.window))
+    
+    if (sum(Y.window$dummy_neg)==0 & sum(Y.window$dummy_pos==0)) {
+      winfit=fitADL(Y.mat,X1.window,X2.window,p_y,p_x1,p_x2,h) #call the function to fit the AR(2) and generate h-step forecast
+      save.coef[(i),]=c(winfit$coef,0,0) #save estimated coefficients, 0 for dummy since not involved
+      save.pred[(i),]=winfit$pred #save the forecast
+      
+    } else { # covid dummy involved
+      winfit=fitADL_dummy(Y.window,X1.window,X2.window,p_y,p_x1,p_x2,h)
+      save.coef[(i),]=winfit$coef #save estimated coefficients
+      save.pred[(i),]=winfit$pred #save the forecast
+    }
+    
+    real[i] = Y_recent[no_qtrs+1]
+    sign[i]=ifelse(Y[no_qtrs+1]>0, 
+                   ifelse(winfit$pred>0, 0, 1), 
+                   ifelse(winfit$pred>0, 1, 0))
+  }
+  
+  #Some useful post-prediction misc stuff:
+  #plot(real,type="l")
+  #lines(c(rep(NA,length(real)-noos),save.pred),col="red") #padded with NA for blanks, plot predictions vs. actual
+  
+  rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
+  mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
+  signs=sum(sign)/noos
+  abs_errors = abs(real-save.pred)
+  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
+  
+  return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real,"abs_loss"=abs_errors,"lags"=c(p_y,p_x1,p_x2))) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
+}
+
 adl_rolling_test = adl.rolling.window(data_full, rpc_full, X2, Y_recent, 50, 2, 2,2)
 
 # function: rolling window - cross validation (50 quarters)
@@ -584,7 +737,11 @@ cv_rolling_adl = function(data_full, rpc_full, spread, Y, noos = 50, p_y, p_x1, 
     select(c(1, 2:51))
   rpc_cv = rpc_full %>%
     select(c(1, 2:51))
-  return(adl.rolling.window(data_cv, rpc_cv, spread, Y, noos = 50, p_y, p_x1, p_x2, h))
+  if (start_index>=2020.5) {
+    return(adl.rolling.window_covid(data_cv, rpc_cv, spread, Y, noos = 50, p_y, p_x1, p_x2, h))
+  } else {
+    return(adl.rolling.window(data_cv, rpc_cv, spread, Y, noos = 50, p_y, p_x1, p_x2, h))
+  }
 }
 
 adl22=cv_rolling_adl(data_full,rpc_full,X2,Y_recent,50,2,2,3,1) #1-step POOS ADL(2,2) forecast
@@ -594,10 +751,16 @@ test_rolling_adl = function(data_full, rpc_full, spread, Y, noos = num_quarters,
     select(c(1, 52:ncol(data_full)))
   rpc_test = rpc_full %>%
     select(c(1, 52:ncol(rpc_full)))
-  return(adl.rolling.window(data_test, rpc_test, spread, Y, noos = num_quarters, p_y, p_x1, p_x2, h))
+  if (start_index<=2020.75 & end_index>=2020.5) { # only 2020.5 and 2020.75 are affected
+    return(adl.rolling.window_covid(data_test, rpc_test, spread, Y, noos = num_quarters, p_y, p_x1, p_x2, h))
+  } else {
+    return(adl.rolling.window(data_test, rpc_test, spread, Y, noos = num_quarters, p_y, p_x1, p_x2, h))
+  }
 }
 
 adl22=test_rolling_adl(data_full,rpc_full,X2,Y_recent,num_quarters,3,2,2,1) #1-step POOS ADL(2,2) forecast
+
+
 
 # DM test - between AR and ADL
 # output: t-statistic and plot
@@ -660,10 +823,10 @@ dm_test2 = function(l1, l2, h) {
 
 dm_test2(ar12$abs_loss, AR_combined1$abs_loss, 1)
 
-dm_test2(c(0.9, 0.8, 0.7, 1.2,1), c(0.9, 0.8, 0.7, 1.2,1), 1)
-num_quarters = 2
-dm_test2(c(1,0.5,0.8), c(1.2,0.8,1.3), 2)
-
-pt(-2.105442, 9)
-pt(NA, 9)
+# dm_test2(c(0.9, 0.8, 0.7, 1.2,1), c(0.9, 0.8, 0.7, 1.2,1), 1)
+# num_quarters = 2
+# dm_test2(c(1,0.5,0.8), c(1.2,0.8,1.3), 2)
+# 
+# pt(-2.105442, 9)
+# pt(NA, 9)
 

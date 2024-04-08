@@ -87,7 +87,7 @@ server = function(input, output, session) {
       no_obs_cv = rval_data_used() %>%
         select(50) %>%
         rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-        mutate(gdp = as.numeric(gdp)) %>%
+        mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
         drop_na() %>%
         mutate(loggdp = log(gdp)) %>%
         nrow()
