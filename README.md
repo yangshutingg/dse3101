@@ -11,16 +11,6 @@ Before running the application, ensure you have R installed on your system. The 
 install.packages(c("readxl", "tidyverse", "zoo", "sandwich", "lsei", "shiny", "shinyWidgets", "shinythemes"))
 
 ```
-Give an example
-```
-
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
-
 
 ## Deployment
 
@@ -40,10 +30,10 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Contributors
 
-* **Choo Jin Yi**
-* **Toh Kai Lin**
-* **Wang Tingyu Kelly**
-* **Yang Shu Ting**
+* Choo Jin Yi
+* Toh Kai Lin
+* Wang Tingyu Kelly
+* Yang Shu Ting
 
 
 ## License
@@ -52,6 +42,4 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Acknowledgments
 
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* Prof. Denis for his guidance on this project
