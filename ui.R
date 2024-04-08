@@ -3,34 +3,34 @@ library(shinyWidgets)
 library(shinythemes)
 
 ui <- fluidPage(
-  titlePanel("Benchmarking of economic models"),
+  titlePanel("Benchmarking of Economic Models"),
   theme = shinytheme("readable"),
   sidebarLayout(
     sidebarPanel(
       sliderTextInput("start_quarter",
-                      "Starting quarter",
+                      "Starting Quarter",
                       choices = data$DATE,
                       selected = "2003:Q2",
                       from_min = "2003:Q2",
                       to_max = "2023:Q3"
       ),
       sliderTextInput("end_quarter",
-                      "Ending quarter",
+                      "Ending Quarter",
                       choices = data$DATE,
                       selected = "2003:Q3",
                       from_min = "2003:Q3",
                       to_max = "2023:Q4"
       ),
       selectInput("h",
-                  "Forecast horizon",
+                  "Forecast Horizon",
                   choices = c(1, 2, 3, 4)
       ),
       selectInput("model_type",
-                  "Model type",
+                  "Model Type",
                   choices = c("AR", "ADL", "Simple Average", "Granger-Ramanathan")
       ),
       selectInput("sig_level",
-                  "Forecast interval",
+                  "Forecast Interval",
                   choices = c("50%", "68%", "80%", "90%")
       )
     ),
