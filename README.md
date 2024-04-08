@@ -38,11 +38,13 @@ Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c6
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
 
-## Authors
+## Contributors
 
-* **Choo Jin Yi** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
+* **Choo Jin Yi**
+* **Toh Kai Lin**
+* **Wang Tingyu Kelly**
+* **Yang Shu Ting**
 
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
 ## License
 
