@@ -117,9 +117,9 @@ server = function(input, output, session) {
     #dm_stat = 1.3
     
     model_type_line = reactive({
-      ifelse(input$model_type == "AR", paste0("The chosen model is AR(",best_ar_lag(), ")"), 
-             ifelse(input$model_type == "ADL", paste0("The chosen model is ADL(", model()$lags[1], " ,", model()$lags[2], " ,", model()$lags[3], ")"), 
-                    paste0("The chosen model is ", input$model_type)))
+      ifelse(input$model_type == "AR", paste0("Your chosen model is AR(",best_ar_lag(), ")"), 
+             ifelse(input$model_type == "ADL", paste0("Your chosen model is ADL(", model()$lags[1], " ,", model()$lags[2], " ,", model()$lags[3], ")"), 
+                    paste0("Your chosen model is ", input$model_type)))
     })
     
     
@@ -202,7 +202,7 @@ server = function(input, output, session) {
     upper.ts = ts(forecast_intervals()[,1], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     lower.ts = ts(forecast_intervals()[,3], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     
-    plot.ts(true_ts, main = "h-step Forecasts", cex.axis=1.5, lwd=1.8, col="black", ylab="GDP growth")
+    plot.ts(true_ts, cex.axis=1.5, lwd=1.8, col="black", ylab="GDP growth")
     points(forecast.ts, type = "l", col = "red", lwd = 1.8)
     points(upper.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
     points(lower.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
@@ -225,7 +225,7 @@ server = function(input, output, session) {
   
   stats_df = reactive({
     df <- data.frame(
-      c("RMSFE", "MAE", "Percentage of signs predicted wrongly"),
+      c("RMSFE", "MAE", "Percentage of signs predicted wrongly (%)"),
       c(
         round(benchmark_AR()$errors[1], 4),
         round(benchmark_AR()$errors[2], 4),
@@ -244,6 +244,9 @@ server = function(input, output, session) {
   output$stats_table <- renderTable({
     stats_df()})
   
+  output$display_h <- renderText({
+    paste0("Plot for ", input$h, "-step forecast")
+  })
 }
 
 #add more performance metrics 
