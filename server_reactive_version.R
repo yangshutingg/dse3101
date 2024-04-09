@@ -117,7 +117,7 @@ server = function(input, output, session) {
     #dm_stat = 1.3
     
     model_type_line = reactive({
-      ifelse(input$model_type == "AR", paste0("The chosen model is AR(", best_ar_lag(), ")"), 
+      ifelse(input$model_type == "AR", paste0("The chosen model is AR(",best_ar_lag(), ")"), 
              ifelse(input$model_type == "ADL", paste0("The chosen model is ADL(", model()$lags[1], " ,", model()$lags[2], " ,", model()$lags[3], ")"), 
                     paste0("The chosen model is ", input$model_type)))
     })
@@ -222,6 +222,28 @@ server = function(input, output, session) {
       ""
     }
   })
+  
+  stats_df = reactive({
+    df <- data.frame(
+      c("RMSFE", "MAE", "Percentage of signs predicted wrongly"),
+      c(
+        round(benchmark_AR()$errors[1], 4),
+        round(benchmark_AR()$errors[2], 4),
+        round(benchmark_AR()$errors[3]*100, 2)
+      ),
+      c(
+        round(model()$errors[1], 4),
+        round(model()$errors[2], 4),
+        round(model()$errors[3]*100, 2)
+      )
+    )
+    colnames(df) <- c("Statistic", "Best AR Model (Benchmark)", "Your Chosen Model")
+    df
+  })
+  
+  output$stats_table <- renderTable({
+    stats_df()})
+  
 }
 
 #add more performance metrics 

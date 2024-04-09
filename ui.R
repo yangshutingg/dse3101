@@ -35,6 +35,7 @@ ui <- fluidPage(
       )
     ),
   mainPanel(
+    h4(tableOutput("stats_table")),
     h4(textOutput("quarter_error_message")),
     h4(verbatimTextOutput("benchmark_stats")),
     h4(verbatimTextOutput("chosen_model_stats")),
