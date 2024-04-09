@@ -3,7 +3,7 @@ library(shinyWidgets)
 library(shinythemes)
 
 ui <- fluidPage(
-  titlePanel("Benchmarking of Economic Models"),
+  titlePanel("Real-Time GDP Growth Forecaster"),
   theme = shinytheme("readable"),
   sidebarLayout(
     sidebarPanel(
