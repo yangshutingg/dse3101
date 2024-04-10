@@ -221,7 +221,7 @@ server = function(input, output, session) {
       geom_line(mapping=aes(y=upper,col="upper"),linetype=3) + 
       geom_line(mapping=aes(y=lower,col="lower"),linetype=3) +
       geom_ribbon(aes(ymin=lower,ymax=upper), fill="antiquewhite", alpha=0.3) +
-      labs(y = "GDP growth") +
+      labs(y = "GDP growth in %") +
       scale_color_manual(values = c("true"="black", "forecast"="red", "upper"="darkslategray4", "lower"="darkslategray4"),
                          labels = c("true"="True Values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
       theme(legend.position="bottom") +
