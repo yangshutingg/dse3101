@@ -226,7 +226,8 @@ server = function(input, output, session) {
                          labels = c("true"="True Values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
       theme(legend.position="bottom",legend.text = element_text(size=15),legend.key.size = unit(1.5, 'cm')) +
       theme(legend.title=element_blank(),
-            axis.title.x=element_blank())
+            axis.title.x=element_blank(),
+            axis.title.y=element_text(size=15,face="bold"))
     
     suppressWarnings(print(p))
   })
