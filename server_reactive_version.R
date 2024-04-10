@@ -53,6 +53,10 @@ server = function(input, output, session) {
     
   })
   
+  output$benchmark = renderText({
+    paste0("The benchmark model is AR(", best_ar_lag(),").")
+  })
+  
   
   build_model = function(type, h, best_ar_lag) {
     if (type == "AR") {
