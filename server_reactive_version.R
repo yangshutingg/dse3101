@@ -252,10 +252,25 @@ server = function(input, output, session) {
     paste0("Plot for ", input$h, "-step Ahead Forecast")
   })
   
-  output$your_chosen_model = renderText({
+  output$your_chosen_model <- renderText({
     ifelse(input$model_type == "AR", paste0("Your chosen model is AR(",best_ar_lag(), ")."), 
              ifelse(input$model_type == "ADL", paste0("Your chosen model is ADL(", model()$lags[1], " ,", model()$lags[2], " ,", model()$lags[3], ")."), 
                     paste0("Your chosen model is ", input$model_type, ".")))
+  })
+  
+  output$dm_test_result <- ({reactive({
+    l1 = benchmark_AR()$abs_loss
+    l2 = model()$abs_loss
+    dm_stat = ifelse(input$model_type == "AR", NA, dm_test2(l1, l2, rval_h()))
+    #dm_stat = 1.3
+    
+    dm_prob = pt(-abs(dm_stat), num_quarters-rval_h()-1)
+    hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
+    
+    dm_test_line = ifelse(is.na(hyp_test), "", paste("We", hyp_test, "the null hypothesis of equal predictive ability as the t-statistic is", round(dm_stat,2)))
+    
+    paste(dm_test_line)
+  })
   })
 }
 

@@ -158,6 +158,7 @@ table>thead>tr>th, .table>thead>tr>th, table>tbody>tr>th, .table>tbody>tr>th, ta
                  h4(verbatimTextOutput("benchmark_stats")),
                  h4(verbatimTextOutput("chosen_model_stats")),
                  h4(textOutput("pct_signs_wrong")),
+                 h4(textOutput("dm_test_result"))
 
         ),
         tabPanel("Forecast Graph",
