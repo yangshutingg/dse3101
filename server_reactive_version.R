@@ -221,7 +221,7 @@ server = function(input, output, session) {
       geom_line(mapping=aes(y=forecast,col="Forecasts")) +
       geom_line(mapping=aes(y=upper,col="Upper Confidence Interval"),linetype=3) + 
       geom_line(mapping=aes(y=lower,col="Lower Confidence Interval"),linetype=3) +
-      geom_ribbon(aes(ymin=lower,ymax=upper), fill="antiquewhite", alpha=0.3) +
+      geom_ribbon(aes(ymin=lower,ymax=upper), fill="green", alpha=0.1) +
       labs(y = "GDP growth in %") +
       scale_color_manual(values = c("True Values"="white", "Forecasts"="red", "Upper Confidence Bound"="green", "Lower Confidence Bound"="green"),
                          labels = c("true"="True Values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
