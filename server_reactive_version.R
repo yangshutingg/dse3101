@@ -236,7 +236,8 @@ server = function(input, output, session) {
         legend.background = element_rect(fill='transparent'), #transparent legend bg
         legend.box.background = element_rect(fill='transparent') #transparent legend panel
       ) +
-      theme(text=element_text(color="white"),axis.text=element_text(color="white"))
+      theme(text=element_text(color="white"),axis.text=element_text(color="white"))+
+      geom_hline(yintercept = 0,linetype='dotted', col = 'yellow')
     
     suppressWarnings(print(p))
   }, bg = "transparent")
