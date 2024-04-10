@@ -160,7 +160,7 @@ table>thead>tr>th, .table>thead>tr>th, table>tbody>tr>th, .table>tbody>tr>th, ta
         ),
         tabPanel("Forecast Graph",
                  h3(textOutput("display_h"), class="forecast-title"),  
-                 h4(plotOutput("plot"))
+                 h4(plotlyOutput("plot"))
         ),
        
       )

@@ -1,5 +1,6 @@
 library(shiny)
 library(ggplot2)
+library(plotly)
 source("model_ar copy.R")
 
 server = function(input, output, session) {
@@ -153,7 +154,7 @@ server = function(input, output, session) {
   #plot for chosen model
   #Syntax: ts(object, start=startdate, end=enddate, freq=frequency (periods per year))
   
-  output$plot = renderPlot({
+  output$plot = renderPlotly({
     
     start_quarter = rval_start_quarter()
     end_quarter = rval_end_quarter()
@@ -216,13 +217,13 @@ server = function(input, output, session) {
     toplot$lower = c(rep(NA, 8), lower.ts)
     
     p <- ggplot(data = toplot, mapping=aes(x = time)) +
-      geom_line(mapping=aes(y=true_values,col="true")) +
-      geom_line(mapping=aes(y=forecast,col="forecast")) +
-      geom_line(mapping=aes(y=upper,col="upper"),linetype=3) + 
-      geom_line(mapping=aes(y=lower,col="lower"),linetype=3) +
+      geom_line(mapping=aes(y=true_values,col="True Values")) +
+      geom_line(mapping=aes(y=forecast,col="Forecasts")) +
+      geom_line(mapping=aes(y=upper,col="Upper Confidence Interval"),linetype=3) + 
+      geom_line(mapping=aes(y=lower,col="Lower Confidence Interval"),linetype=3) +
       geom_ribbon(aes(ymin=lower,ymax=upper), fill="antiquewhite", alpha=0.3) +
       labs(y = "GDP growth in %") +
-      scale_color_manual(values = c("true"="white", "forecast"="red", "upper"="green", "lower"="green"),
+      scale_color_manual(values = c("True Values"="white", "Forecasts"="red", "Upper Confidence Bound"="green", "Lower Confidence Bound"="green"),
                          labels = c("true"="True Values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
       theme(legend.position="bottom",legend.text = element_text(size=15),legend.key.size = unit(1.5, 'cm')) +
       theme(legend.title=element_blank(),
@@ -238,9 +239,11 @@ server = function(input, output, session) {
       ) +
       theme(text=element_text(color="white",size=15),axis.text=element_text(color="white")) +
       geom_hline(yintercept = 0,linetype='dotted', col = 'yellow')
+    p <- ggplotly(p) %>%
+      layout(legend = list(orientation = 'h',font = list(size = 15),title = list(text = "<b> </b>")))
     
     suppressWarnings(print(p))
-  }, bg = "transparent")
+  })
   
   output$quarter_error_message <- renderText({
     start_quarter <- gsub(":Q", ".", input$start_quarter)
