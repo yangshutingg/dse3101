@@ -207,10 +207,10 @@ server = function(input, output, session) {
     points(upper.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
     points(lower.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
     legend("bottomleft", 
-           legend = c("True values", "Forecasts", "Upper Confidence Bound", "Lower Confidence Bound"), 
+           legend = c("True Values", "Forecasts", "Upper Confidence Bound", "Lower Confidence Bound"), 
            col = c("black", "red", "lightblue", "lightblue"), 
            lty = 1, 
-           cex = 0.8)
+           cex = 1.5)
   })
   output$quarter_error_message <- renderText({
     start_quarter <- gsub(":Q", ".", input$start_quarter)
