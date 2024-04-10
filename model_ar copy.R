@@ -150,7 +150,8 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
   save.coef=matrix(NA,noos,p+1) #blank matrix for coefficients at each iteration (3=constant+ 2 lags)
   save.pred=matrix(NA,noos,1) #blank for forecasts
   real=matrix(NA,noos,1)
-  sign=matrix(NA,noos,1)
+  neg_sign=matrix(NA,noos,1)
+  pos_sign=matrix(NA,noos,1)
   for(i in 1:noos){ 
     # get real-time data
     temp_Y = data_cv %>%
@@ -177,9 +178,9 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
     #cat("iteration",(1+noos-i),"\n") #display iteration number (useful for slower ML methods)
     
     real[i]=Y[index] #get actual values
-    sign[i]=ifelse(Y[index]>0, 
-                   ifelse(winfit$pred>0, 0, 1), 
-                   ifelse(winfit$pred>0, 1, 0))
+    neg_sign[i]=ifelse(Y[index]<0 & winfit$pred>0, 
+                       1,0)
+    pos_sign[i]=ifelse(Y[index]>0 & winfit$pred<0, 1, 0)
   }
   
   #Some useful post-prediction misc stuff:
@@ -188,9 +189,10 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
   
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
-  signs = sum(sign)/noos #no of signs predicted wrongly
+  signs = sum(neg_sign,pos_sign)/noos #no of signs predicted wrongly
+  neg_signs = sum(neg_sign)/sum(neg_sign,pos_sign) #no of negative signs predicted wrongly
   abs_errors = abs(real-save.pred)
-  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
+  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
   
   return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real,"abs_loss" = abs_errors)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
@@ -202,7 +204,8 @@ ar.rolling.window_covid=function(data_test,Y,noos,p,h){ #equality here  means de
   save.coef=matrix(NA,noos,p+1+2) #blank matrix for coefficients at each iteration (3=constant+ 2 lags), +2 for dummy
   save.pred=matrix(NA,noos,1) #blank for forecasts
   real=matrix(NA,noos,1)
-  sign=matrix(NA,noos,1)
+  neg_sign=matrix(NA,noos,1)
+  pos_sign = matrix(NA,noos,1)
   for(i in 1:noos){ 
     # get real-time data
     temp_Y = data_test %>%
@@ -245,9 +248,9 @@ ar.rolling.window_covid=function(data_test,Y,noos,p,h){ #equality here  means de
     }
     
     real[i]=Y[index] #get actual values
-    sign[i]=ifelse(Y[index]>0, 
-                   ifelse(winfit$pred>0, 0, 1), 
-                   ifelse(winfit$pred>0, 1, 0))
+    neg_sign[i]=ifelse(Y[index]<0 & winfit$pred>0, 
+                   1,0)
+    pos_sign[i]=ifelse(Y[index]>0 & winfit$pred<0, 1, 0)
   }
   
   #Some useful post-prediction misc stuff:
@@ -256,9 +259,10 @@ ar.rolling.window_covid=function(data_test,Y,noos,p,h){ #equality here  means de
   
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
-  signs = sum(sign)/noos #no of signs predicted wrongly
+  signs = sum(neg_sign,pos_sign)/noos #no of signs predicted wrongly
+  neg_signs = sum(neg_sign)/sum(neg_sign,pos_sign) #no of negative signs predicted wrongly
   abs_errors = abs(real-save.pred)
-  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
+  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
   
   return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real,"abs_loss" = abs_errors)) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
@@ -316,12 +320,13 @@ ar_combined = function(data_full, h, test_fn, Y) {
   real = Y[(no_obs-num_quarters+1):no_obs]
   rmse=sqrt(mean((real-AR_simple_combined)^2)) #compute RMSE
   mae=mean(abs(real-AR_simple_combined)) #compute MAE (Mean Absolute Error)
-  sign = sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]>0, 
-                                                      ifelse(AR_simple_combined[i]>0, 0, 1), 
-                                                      ifelse(AR_simple_combined[i]>0, 1, 0))})
-  signs = sum(sign)/nrow(AR_preds)
+  neg_sign=sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]<0 & AR_simple_combined[i]>0, 
+                                                           1,0)})
+  pos_sign=sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]>0 & AR_simple_combined[i]<0, 1, 0)})
+  signs = sum(neg_sign,pos_sign)/nrow(AR_preds) #no of signs predicted wrongly
+  neg_signs = sum(neg_sign)/sum(neg_sign,pos_sign) #no of negative signs predicted wrongly
   abs_errors = abs(real-AR_simple_combined)
-  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
+  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
   return(list("pred" = AR_simple_combined, "errors" = errors,"real"=real, "abs_loss" = abs_errors))
 }
 
@@ -367,8 +372,8 @@ ar_gr_combined = function(data_full, h, cv_preds, oosy, test_fn, Y) {
   X = cbind(rep(1, 50), cv_preds) #50 predictions
   weights = lsei(X, oosy, c=c(0, rep(1,8)), d=1, e=e_mat, f=rep(0,9))
   AR_preds = sapply(1:8, function(i) {return(test_fn(data_full, Y, p = i, h = h)$pred)})  
-  AR_gr_combined = sapply(1:8, function(i) {return(weights[i]*AR_preds[,i])})
-  AR_gr_combined = apply(AR_gr_combined, 1, sum)
+  AR_gr_combined = sapply(1:8, function(i) {return(weights[i+1]*AR_preds[,i])})
+  AR_gr_combined = apply(AR_gr_combined, 1, sum) + weights[1]
   no_obs = data_full %>%
     select(last_col()) %>%
     rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
@@ -379,13 +384,14 @@ ar_gr_combined = function(data_full, h, cv_preds, oosy, test_fn, Y) {
   real = Y[(no_obs-num_quarters+1):no_obs]
   rmse=sqrt(mean((real-AR_gr_combined)^2)) #compute RMSE
   mae=mean(abs(real-AR_gr_combined)) #compute MAE (Mean Absolute Error)
-  sign = sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]>0, 
-                                                      ifelse(AR_gr_combined[i]>0, 0, 1), 
-                                                      ifelse(AR_gr_combined[i]>0, 1, 0))})
-  signs = sum(sign)/nrow(AR_preds)
+  neg_sign=sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]<0 & AR_gr_combined[i]>0, 
+                                                        1,0)})
+  pos_sign=sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]>0 & AR_gr_combined[i]<0, 1, 0)})
+  signs = sum(neg_sign,pos_sign)/nrow(AR_preds) #no of signs predicted wrongly
+  neg_signs = sum(neg_sign)/sum(neg_sign,pos_sign) #no of negative signs predicted wrongly
   abs_errors = abs(real-AR_gr_combined)
-  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
-  return(list("pred" = AR_gr_combined, "errors" = errors,"real"=real, "abs_loss"=abs_errors))
+  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
+  return(list("pred" = AR_gr_combined, "errors" = errors,"real"=real, "abs_loss"=abs_errors,"weights"=weights))
 }
 
 ar_preds = sapply(1:8, function(i){
@@ -581,7 +587,8 @@ adl.rolling.window=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1){ #eq
   save.coef=matrix(NA,noos,p_y+p_x1+p_x2+1) #blank matrix for coefficients at each iteration (3=constant+ 2 lags)
   save.pred=matrix(NA,noos,1) #blank for forecasts
   real=matrix(NA,noos,1)
-  sign=matrix(NA,noos,1)
+  neg_sign=matrix(NA,noos,1)
+  pos_sign=matrix(NA,noos,1)
   for(i in 1:noos){ 
     # get real-time data
     temp_Y = data_cv %>%
@@ -627,9 +634,9 @@ adl.rolling.window=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1){ #eq
     #cat("iteration",(1+noos-i),"\n") #display iteration number (useful for slower ML methods)
     
     real[i] = Y_recent[no_qtrs+1]
-    sign[i]=ifelse(Y[no_qtrs+1]>0, 
-                   ifelse(winfit$pred>0, 0, 1), 
-                   ifelse(winfit$pred>0, 1, 0))
+    neg_sign[i]=ifelse(Y[no_qtrs+1]<0 & winfit$pred>0, 
+                       1,0)
+    pos_sign[i]=ifelse(Y[no_qtrs+1]>0 & winfit$pred<0, 1, 0)
   }
   
   #Some useful post-prediction misc stuff:
@@ -638,9 +645,10 @@ adl.rolling.window=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1){ #eq
   
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
-  signs=sum(sign)/noos
+  neg_signs=sum(neg_sign)/sum(neg_sign,pos_sign)
+  signs=sum(neg_sign,pos_sign)/noos
   abs_errors = abs(real-save.pred)
-  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
+  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
   
   return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real,"abs_loss"=abs_errors,"lags"=c(p_y,p_x1,p_x2))) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }
@@ -651,7 +659,8 @@ adl.rolling.window_covid=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1
   save.coef=matrix(NA,noos,p_y+p_x1+p_x2+1+2) #blank matrix for coefficients at each iteration (3=constant+ 2 lags), +2 for dummy
   save.pred=matrix(NA,noos,1) #blank for forecasts
   real=matrix(NA,noos,1)
-  sign=matrix(NA,noos,1)
+  neg_sign=matrix(NA,noos,1)
+  pos_sign=matrix(NA,noos,1)
   for(i in 1:noos){ 
     # get real-time data
     temp_Y = data_cv %>%
@@ -708,9 +717,9 @@ adl.rolling.window_covid=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1
     }
     
     real[i] = Y_recent[no_qtrs+1]
-    sign[i]=ifelse(Y[no_qtrs+1]>0, 
-                   ifelse(winfit$pred>0, 0, 1), 
-                   ifelse(winfit$pred>0, 1, 0))
+    neg_sign[i]=ifelse(Y[no_qtrs+1]<0 & winfit$pred>0, 
+                       1,0)
+    pos_sign[i]=ifelse(Y[no_qtrs+1]>0 & winfit$pred<0, 1, 0)
   }
   
   #Some useful post-prediction misc stuff:
@@ -719,9 +728,10 @@ adl.rolling.window_covid=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1
   
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
-  signs=sum(sign)/noos
+  neg_signs=sum(neg_sign)/sum(neg_sign,pos_sign)
+  signs=sum(neg_sign,pos_sign)/noos
   abs_errors = abs(real-save.pred)
-  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs) #stack errors in a vector
+  errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
   
   return(list("pred"=save.pred,"coef"=save.coef,"errors"=errors,"real"=real,"abs_loss"=abs_errors,"lags"=c(p_y,p_x1,p_x2))) #return forecasts, history of estimated coefficients, and RMSE and MAE for the period.
 }

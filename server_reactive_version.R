@@ -221,8 +221,8 @@ server = function(input, output, session) {
       geom_line(mapping=aes(y=forecast,col="Forecasts")) +
       geom_line(mapping=aes(y=upper,col="Upper Confidence Interval"),linetype=3) + 
       geom_line(mapping=aes(y=lower,col="Lower Confidence Interval"),linetype=3) +
-      geom_ribbon(aes(ymin=lower,ymax=upper), fill="green", alpha=0.1) +
-      labs(y = "GDP growth in %") +
+      geom_ribbon(aes(ymin=lower,ymax=upper), fill="mistyrose3", alpha=0.4) +
+      labs(y = "GDP growth(%)") +
       scale_color_manual(values = c("True Values"="white", "Forecasts"="red", "Upper Confidence Bound"="green", "Lower Confidence Bound"="green"),
                          labels = c("true"="True Values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
       theme(legend.position="bottom",legend.text = element_text(size=15),legend.key.size = unit(1.5, 'cm')) +
@@ -238,7 +238,7 @@ server = function(input, output, session) {
         legend.box.background = element_rect(fill='transparent') #transparent legend panel
       ) +
       theme(text=element_text(color="white",size=15),axis.text=element_text(color="white")) +
-      geom_hline(yintercept = 0,linetype='dotted', col = 'yellow')
+      geom_hline(yintercept = 0,linetype='dashed', col = 'turquoise')
     p <- ggplotly(p) %>%
       layout(legend = list(orientation = 'h',font = list(size = 15),title = list(text = "<b> </b>")))
     
@@ -258,16 +258,18 @@ server = function(input, output, session) {
   
   stats_df = reactive({
     df <- data.frame(
-      c("RMSFE", "MAE", "Percentage of Signs Predicted Wrongly (%)"),
+      c("RMSFE", "MAE", "Signs Predicted Wrongly (%)", "Negative Signs Predicted Wrongly (%)"),
       c(
         round(benchmark_AR()$errors[1], 4),
         round(benchmark_AR()$errors[2], 4),
-        round(benchmark_AR()$errors[3]*100, 2)
+        round(benchmark_AR()$errors[3]*100, 2),
+        round(benchmark_AR()$errors[4]*100, 2)
       ),
       c(
         round(model()$errors[1], 4),
         round(model()$errors[2], 4),
-        round(model()$errors[3]*100, 2)
+        round(model()$errors[3]*100, 2),
+        round(model()$errors[4]*100, 2)
       )
     )
     colnames(df) <- c("Statistic", "Best AR Model (Benchmark)", "Your Chosen Model")
@@ -284,7 +286,13 @@ server = function(input, output, session) {
   output$your_chosen_model <- renderText({
     ifelse(input$model_type == "AR", paste0("Your chosen model is AR(",best_ar_lag(), ")."), 
              ifelse(input$model_type == "ADL", paste0("Your chosen model is ADL(", model()$lags[1], ",", model()$lags[2], ",", model()$lags[3], ")."), 
-                    paste0("Your chosen model is ", input$model_type, ".")))
+                    paste0("Your chosen model is ", input$model_type, ".", 
+                           ifelse(input$model_type == "Granger-Ramanathan", paste0(" The constant is ", round(model()$weights[1],2), 
+                                                                                   " and the weights assigned to the 8 AR models are ", 
+                                                                                   round(model()$weights[2],2), ", ", round(model()$weights[3],2), ", ", 
+                                                                                   round(model()$weights[4],2), ", ", round(model()$weights[5],2), ", ", 
+                                                                                   round(model()$weights[6],2), ", ", round(model()$weights[7],2), ", ", 
+                                                                                   round(model()$weights[8],2), ", ", round(model()$weights[9],2), " respectively."), ""))))
   })
   
   output$dm_test_result <- ({reactive({
