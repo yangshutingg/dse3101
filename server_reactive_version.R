@@ -246,7 +246,7 @@ server = function(input, output, session) {
   })
   
   output$stats_table <- renderTable({
-    stats_df()})
+    stats_df()}, digits = 4)
   
   output$display_h <- renderText({
     paste0("Plot for ", input$h, "-step Ahead Forecast")
