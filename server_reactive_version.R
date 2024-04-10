@@ -267,7 +267,7 @@ server = function(input, output, session) {
     dm_prob = pt(-abs(dm_stat), num_quarters-rval_h()-1)
     hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
     
-    dm_test_line = ifelse(is.na(hyp_test), "", paste("We", hyp_test, "the null hypothesis of equal predictive ability as the t-statistic is", round(dm_stat,2)))
+    dm_test_line = ifelse(is.na(hyp_test), "", paste0("We ", hyp_test, " the null hypothesis of equal predictive ability as the t-statistic is ", round(dm_stat,2), "."))
     
     paste(dm_test_line)
   })
