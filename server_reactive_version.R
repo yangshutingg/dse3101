@@ -222,15 +222,25 @@ server = function(input, output, session) {
       geom_line(mapping=aes(y=lower,col="lower"),linetype=3) +
       geom_ribbon(aes(ymin=lower,ymax=upper), fill="antiquewhite", alpha=0.3) +
       labs(y = "GDP growth in %") +
-      scale_color_manual(values = c("true"="black", "forecast"="red", "upper"="darkslategray4", "lower"="darkslategray4"),
+      scale_color_manual(values = c("true"="white", "forecast"="red", "upper"="green", "lower"="green"),
                          labels = c("true"="True Values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
       theme(legend.position="bottom",legend.text = element_text(size=15),legend.key.size = unit(1.5, 'cm')) +
       theme(legend.title=element_blank(),
             axis.title.x=element_blank(),
-            axis.title.y=element_text(size=15,face="bold"))
+            axis.title.y=element_text(size=15,face="bold")) +
+      theme(
+        panel.background = element_rect(fill='transparent'), #transparent panel bg
+        plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+        panel.grid.major = element_blank(), #remove major gridlines
+        panel.grid.minor = element_blank(), #remove minor gridlines
+        legend.background = element_rect(fill='transparent'), #transparent legend bg
+        legend.box.background = element_rect(fill='transparent') #transparent legend panel
+      ) +
+      theme(text=element_text(color="white"),axis.text=element_text(color="white"))
     
     suppressWarnings(print(p))
-  })
+  }, bg = "transparent")
+  
   output$quarter_error_message <- renderText({
     start_quarter <- gsub(":Q", ".", input$start_quarter)
     end_quarter <- gsub(":Q", ".", input$end_quarter)
