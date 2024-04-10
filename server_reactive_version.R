@@ -225,7 +225,7 @@ server = function(input, output, session) {
   
   stats_df = reactive({
     df <- data.frame(
-      c("RMSFE", "MAE", "Percentage of signs predicted wrongly (%)"),
+      c("RMSFE", "MAE", "Percentage of Signs Predicted Wrongly (%)"),
       c(
         round(benchmark_AR()$errors[1], 4),
         round(benchmark_AR()$errors[2], 4),
