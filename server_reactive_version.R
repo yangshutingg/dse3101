@@ -245,7 +245,7 @@ server = function(input, output, session) {
     stats_df()})
   
   output$display_h <- renderText({
-    paste0("Plot for ", input$h, "-step forecast")
+    paste0("Plot for ", input$h, "-step Ahead Forecast")
   })
 }
 
