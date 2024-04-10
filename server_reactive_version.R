@@ -227,7 +227,7 @@ server = function(input, output, session) {
       theme(legend.position="bottom",legend.text = element_text(size=15),legend.key.size = unit(1.5, 'cm')) +
       theme(legend.title=element_blank(),
             axis.title.x=element_blank(),
-            axis.title.y=element_text(size=15,face="bold")) +
+            axis.title.y=element_text(face="bold")) +
       theme(
         panel.background = element_rect(fill='transparent'), #transparent panel bg
         plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
@@ -236,7 +236,7 @@ server = function(input, output, session) {
         legend.background = element_rect(fill='transparent'), #transparent legend bg
         legend.box.background = element_rect(fill='transparent') #transparent legend panel
       ) +
-      theme(text=element_text(color="white"),axis.text=element_text(color="white"))+
+      theme(text=element_text(color="white",size=15),axis.text=element_text(color="white")) +
       geom_hline(yintercept = 0,linetype='dotted', col = 'yellow')
     
     suppressWarnings(print(p))
