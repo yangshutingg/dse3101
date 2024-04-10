@@ -223,7 +223,7 @@ server = function(input, output, session) {
       geom_ribbon(aes(ymin=lower,ymax=upper), fill="antiquewhite", alpha=0.3) +
       labs(y = "GDP growth") +
       scale_color_manual(values = c("true"="black", "forecast"="red", "upper"="darkslategray4", "lower"="darkslategray4"),
-                         labels = c("true"="True values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
+                         labels = c("true"="True Values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
       theme(legend.position="bottom") +
       theme(legend.title=element_blank(),
             axis.title.x=element_blank())
