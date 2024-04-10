@@ -202,7 +202,7 @@ server = function(input, output, session) {
     upper.ts = ts(forecast_intervals()[,1], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     lower.ts = ts(forecast_intervals()[,3], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     
-    plot.ts(true_ts, cex.axis=1.5, lwd=1.8, col="black", ylab="GDP growth")
+    plot.ts(true_ts, cex.axis=1.5, lwd=1.8, col="black", ylab="GDP growth rate (in %)")
     points(forecast.ts, type = "l", col = "red", lwd = 1.8)
     points(upper.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
     points(lower.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
