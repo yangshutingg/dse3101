@@ -206,15 +206,27 @@ server = function(input, output, session) {
     upper.ts = ts(forecast_intervals()[,1], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     lower.ts = ts(forecast_intervals()[,3], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     
-    plot.ts(true_ts, cex.axis=1.5, lwd=1.8, col="black", ylab="GDP growth rate (in %)")
-    points(forecast.ts, type = "l", col = "red", lwd = 1.8)
-    points(upper.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
-    points(lower.ts, type = "l", lty = 2, col = "lightblue", lwd = 1.8)
-    legend("bottomleft", 
-           legend = c("True Values", "Forecasts", "Upper Confidence Bound", "Lower Confidence Bound"), 
-           col = c("black", "red", "lightblue", "lightblue"), 
-           lty = 1, 
-           cex = 1.5)
+    xaxis_start = paste0(year_start_pred + 2000,"-", quarter_start_pred*3, "-01")
+    xaxis_end = paste0(year_end + 2000,"-",quarter_end*3,"-01")
+    time = seq(from=as.Date(xaxis_start),to=as.Date(xaxis_end),by="3 months")
+    toplot = cbind.data.frame(true_values, time)
+    toplot$forecast = c(rep(NA, 8), forecast.ts)
+    toplot$upper = c(rep(NA, 8), upper.ts)
+    toplot$lower = c(rep(NA, 8), lower.ts)
+    
+    p <- ggplot(data = toplot, mapping=aes(x = time)) +
+      geom_line(mapping=aes(y=true_values,col="true")) +
+      geom_line(mapping=aes(y=forecast,col="forecast")) +
+      geom_line(mapping=aes(y=upper,col="upper"),linetype=3) + 
+      geom_line(mapping=aes(y=lower,col="lower"),linetype=3) +
+      geom_ribbon(aes(ymin=lower,ymax=upper), fill="antiquewhite", alpha=0.3) +
+      labs(main="h-step Forecasts", x = "Year", y = "GDP growth") +
+      scale_color_manual(values = c("true"="black", "forecast"="red", "upper"="darkslategray4", "lower"="darkslategray4"),
+                         labels = c("true"="True values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
+      theme(legend.position="bottom") +
+      theme(legend.title=element_blank())
+    
+    suppressWarnings(print(p))
   })
   output$quarter_error_message <- renderText({
     start_quarter <- gsub(":Q", ".", input$start_quarter)
