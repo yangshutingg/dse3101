@@ -1,4 +1,5 @@
 library(shiny)
+library(ggplot2)
 source("model_ar copy.R")
 
 server = function(input, output, session) {
@@ -220,11 +221,12 @@ server = function(input, output, session) {
       geom_line(mapping=aes(y=upper,col="upper"),linetype=3) + 
       geom_line(mapping=aes(y=lower,col="lower"),linetype=3) +
       geom_ribbon(aes(ymin=lower,ymax=upper), fill="antiquewhite", alpha=0.3) +
-      labs(main="h-step Forecasts", x = "Year", y = "GDP growth") +
+      labs(y = "GDP growth") +
       scale_color_manual(values = c("true"="black", "forecast"="red", "upper"="darkslategray4", "lower"="darkslategray4"),
                          labels = c("true"="True values", "forecast"="Forecasts", "upper"="Upper Confidence Bound", "lower"="Lower Confidence Bound")) +
       theme(legend.position="bottom") +
-      theme(legend.title=element_blank())
+      theme(legend.title=element_blank(),
+            axis.title.x=element_blank())
     
     suppressWarnings(print(p))
   })
