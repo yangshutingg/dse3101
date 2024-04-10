@@ -114,7 +114,7 @@ table>thead>tr>th, .table>thead>tr>th, table>tbody>tr>th, .table>tbody>tr>th, ta
   ),
 
   titlePanel("REAL-TIME GDP GROWTH FORECAST"),
-  shinythemes::themeSelector(),
+  theme = shinytheme("superhero"),
   sidebarLayout(
     sidebarPanel(
       sliderTextInput("start_quarter",
