@@ -113,7 +113,7 @@ table>thead>tr>th, .table>thead>tr>th, table>tbody>tr>th, .table>tbody>tr>th, ta
     tags$link(href = 'https://fonts.googleapis.com/css?family=Arial', rel = 'stylesheet', type = 'text/css')
   ),
 
-  titlePanel("Real-Time GDP Growth Forecaster"),
+  titlePanel("Real-Time GDP Growth Forecast"),
   shinythemes::themeSelector(),
   sidebarLayout(
     sidebarPanel(
