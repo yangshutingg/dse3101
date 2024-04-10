@@ -152,6 +152,7 @@ table>thead>tr>th, .table>thead>tr>th, table>tbody>tr>th, .table>tbody>tr>th, ta
       tabsetPanel(type = "tabs",
         tabPanel("Benchmark Analysis",
                  h4(textOutput("benchmark")),
+                 h4(textOutput("your_chosen_model")),
                  h4(tableOutput("stats_table")),
                  h4(textOutput("quarter_error_message")),
                  h4(verbatimTextOutput("benchmark_stats")),

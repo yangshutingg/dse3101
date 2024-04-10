@@ -251,6 +251,12 @@ server = function(input, output, session) {
   output$display_h <- renderText({
     paste0("Plot for ", input$h, "-step Ahead Forecast")
   })
+  
+  output$your_chosen_model = renderText({
+    ifelse(input$model_type == "AR", paste0("Your chosen model is AR(",best_ar_lag(), ")."), 
+             ifelse(input$model_type == "ADL", paste0("Your chosen model is ADL(", model()$lags[1], " ,", model()$lags[2], " ,", model()$lags[3], ")."), 
+                    paste0("Your chosen model is ", input$model_type, ".")))
+  })
 }
 
 #add more performance metrics 
