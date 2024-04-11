@@ -190,7 +190,7 @@ ar.rolling.window=function(data_cv,Y,noos,p,h){ #equality here  means default in
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
   signs = sum(neg_sign,pos_sign)/noos #no of signs predicted wrongly
-  neg_signs = sum(neg_sign)/sum(neg_sign,pos_sign) #no of negative signs predicted wrongly
+  neg_signs = sum(neg_sign)/sum(real<0) #no of negative signs predicted wrongly
   abs_errors = abs(real-save.pred)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
   
@@ -260,7 +260,7 @@ ar.rolling.window_covid=function(data_test,Y,noos,p,h){ #equality here  means de
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
   signs = sum(neg_sign,pos_sign)/noos #no of signs predicted wrongly
-  neg_signs = sum(neg_sign)/sum(neg_sign,pos_sign) #no of negative signs predicted wrongly
+  neg_signs = sum(neg_sign)/sum(real<0) #no of negative signs predicted wrongly
   abs_errors = abs(real-save.pred)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
   
@@ -324,7 +324,7 @@ ar_combined = function(data_full, h, test_fn, Y) {
                                                            1,0)})
   pos_sign=sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]>0 & AR_simple_combined[i]<0, 1, 0)})
   signs = sum(neg_sign,pos_sign)/nrow(AR_preds) #no of signs predicted wrongly
-  neg_signs = sum(neg_sign)/sum(neg_sign,pos_sign) #no of negative signs predicted wrongly
+  neg_signs = sum(neg_sign)/sum(real<0) #no of negative signs predicted wrongly
   abs_errors = abs(real-AR_simple_combined)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
   return(list("pred" = AR_simple_combined, "errors" = errors,"real"=real, "abs_loss" = abs_errors))
@@ -388,7 +388,7 @@ ar_gr_combined = function(data_full, h, cv_preds, oosy, test_fn, Y) {
                                                         1,0)})
   pos_sign=sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]>0 & AR_gr_combined[i]<0, 1, 0)})
   signs = sum(neg_sign,pos_sign)/nrow(AR_preds) #no of signs predicted wrongly
-  neg_signs = sum(neg_sign)/sum(neg_sign,pos_sign) #no of negative signs predicted wrongly
+  neg_signs = sum(neg_sign)/sum(real<0) #no of negative signs predicted wrongly
   abs_errors = abs(real-AR_gr_combined)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
   return(list("pred" = AR_gr_combined, "errors" = errors,"real"=real, "abs_loss"=abs_errors,"weights"=weights))
@@ -645,7 +645,7 @@ adl.rolling.window=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1){ #eq
   
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
-  neg_signs=sum(neg_sign)/sum(neg_sign,pos_sign)
+  neg_signs=sum(neg_sign)/sum(real<0)
   signs=sum(neg_sign,pos_sign)/noos
   abs_errors = abs(real-save.pred)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
@@ -728,7 +728,7 @@ adl.rolling.window_covid=function(data_cv,rpc_cv,spread,Y,noos,p_y,p_x1,p_x2,h=1
   
   rmse=sqrt(mean((real-save.pred)^2)) #compute RMSE
   mae=mean(abs(real-save.pred)) #compute MAE (Mean Absolute Error)
-  neg_signs=sum(neg_sign)/sum(neg_sign,pos_sign)
+  neg_signs=sum(neg_sign)/sum(real<0)
   signs=sum(neg_sign,pos_sign)/noos
   abs_errors = abs(real-save.pred)
   errors=c("rmse"=rmse,"mae"=mae,"signs"=signs,"neg_signs"=neg_signs) #stack errors in a vector
@@ -839,4 +839,3 @@ dm_test2(ar12$abs_loss, AR_combined1$abs_loss, 1)
 # 
 # pt(-2.105442, 9)
 # pt(NA, 9)
-
