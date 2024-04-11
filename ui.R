@@ -140,7 +140,7 @@ table>thead>tr>th, .table>thead>tr>th, table>tbody>tr>th, .table>tbody>tr>th, ta
                   choices = c("AR", "ADL", "Simple Average", "Granger-Ramanathan")
       ),
       p("AR: regression model in which GDP growth rate is regressed against its previous values"),
-      p("ADL: regression model in which GDP growth rate is regressed against its previous values & previous values of treasury yield"),
+      p("ADL: regression model in which GDP growth rate is regressed against its previous values & previous values of real personal consumption and treasury yield"),
       p("Simple Average: average of predictions from several AR models"),
       p("Granger-Ramanathan: regression model to combine forecasts"),
       selectInput("sig_level",
