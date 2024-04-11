@@ -6,15 +6,15 @@ library(zoo)
 library(sandwich)
 library(lsei)
 data = read_excel("ROUTPUTQvQd.xlsx") 
-data = data[-c(1:49), ] # remove data before 1959Q2 due to NAs
+data = data[-c(1:50), ] # remove data before 1959Q3 due to NAs
 
 data_spread = read_excel("allmonth.xls")
 
-data_spread = data_spread[-c(1:3, 781:795),]
+data_spread = data_spread[-c(1:6, 781:795),]
 data_spread = data_spread %>%
   select("Date", "Spread")
 
-data_spread_mth <- ts(data_spread[,"Spread"], start = c(1959, 4), frequency = 12)
+data_spread_mth <- ts(data_spread[,"Spread"], start = c(1959, 7), frequency = 12)
 data_spread_qtr <- aggregate(data_spread_mth, nfrequency = 4, mean)
 data_spread_qtr <- as.data.frame(data_spread_qtr)
 X2 = embed(data_spread_qtr[,1], 2)
@@ -23,7 +23,7 @@ X2 = as.matrix(X2[,1] - X2[,2])
 
 # user input:
 # starting & ending quarter for testing, h-step, expanding/rolling window for cv
-# no restriction for the length of interval, but earliest 150 quarters from 1965q4 -> 2003q2, latest 2023q4, length of cv is fixed at 50 quarters
+# no restriction for the length of interval, but earliest 150 quarters from 1959q3 -> 1997q1, latest 2023q4, length of cv is fixed at 50 quarters
 
 # function: get necessary data 
 # input: user select the end of the desired forecast interval
@@ -36,9 +36,18 @@ get_data = function(start_q, end_q) {
   start_col_name = paste("ROUTPUT", str_sub(start_quarter, start = 3, end = 6), sep = "")
   end_col_name = paste("ROUTPUT", str_sub(end_quarter, start = 3, end = 6), sep = "")
   
-  end_index <<- as.numeric(str_sub(end_quarter, start = 3, end = 4)) + as.numeric(str_sub(end_quarter, start = 6, end = 6)) / 4 + 2000
+  if (as.numeric(str_sub(end_quarter, start = 3, end = 4)) >= 97) {
+    end_index <<- as.numeric(str_sub(end_quarter, start = 3, end = 4)) + as.numeric(str_sub(end_quarter, start = 6, end = 6)) / 4 + 1900
+  } else {
+    end_index <<- as.numeric(str_sub(end_quarter, start = 3, end = 4)) + as.numeric(str_sub(end_quarter, start = 6, end = 6)) / 4 + 2000
+  }
   # 23q3 --> 23.75 --> 2023.75
-  start_index <<- as.numeric(str_sub(start_quarter, start = 3, end = 4)) + as.numeric(str_sub(start_quarter, start = 6, end = 6)) / 4 + 2000
+  if (as.numeric(str_sub(start_quarter, start = 3, end = 4)) >= 97) {
+    start_index <<- as.numeric(str_sub(start_quarter, start = 3, end = 4)) + as.numeric(str_sub(start_quarter, start = 6, end = 6)) / 4 + 1900
+  } else {
+    start_index <<- as.numeric(str_sub(start_quarter, start = 3, end = 4)) + as.numeric(str_sub(start_quarter, start = 6, end = 6)) / 4 + 2000
+  }
+  
   num_quarters <<- (end_index - start_index) * 4 + 1
   
   data_full = data %>%
@@ -56,7 +65,8 @@ get_data = function(start_q, end_q) {
 
 # data_full = get_data("2003Q2","2005Q4")
 # data_full = get_data("2018Q1","2023Q4")
-data_full = get_data("2020Q4", "2023Q4")
+# data_full = get_data("2020Q4", "2023Q4")
+data_full = get_data("1997Q1", "2003Q4")
 
 fitAR=function(Y,p,h){
   
@@ -249,7 +259,7 @@ ar.rolling.window_covid=function(data_test,Y,noos,p,h){ #equality here  means de
     
     real[i]=Y[index] #get actual values
     neg_sign[i]=ifelse(Y[index]<0 & winfit$pred>0, 
-                   1,0)
+                       1,0)
     pos_sign[i]=ifelse(Y[index]>0 & winfit$pred<0, 1, 0)
   }
   
@@ -321,7 +331,7 @@ ar_combined = function(data_full, h, test_fn, Y) {
   rmse=sqrt(mean((real-AR_simple_combined)^2)) #compute RMSE
   mae=mean(abs(real-AR_simple_combined)) #compute MAE (Mean Absolute Error)
   neg_sign=sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]<0 & AR_simple_combined[i]>0, 
-                                                           1,0)})
+                                                        1,0)})
   pos_sign=sapply(1:nrow(AR_preds), function(i) {ifelse(real[i]>0 & AR_simple_combined[i]<0, 1, 0)})
   signs = sum(neg_sign,pos_sign)/nrow(AR_preds) #no of signs predicted wrongly
   neg_signs = sum(neg_sign)/sum(real<0) #no of negative signs predicted wrongly
@@ -433,7 +443,7 @@ intervals = function(x, p, rmsfe) {
 
 # ADL - real personal consumption, same transformation as gdp level
 rpc = read_excel("RCONQvQd.xlsx")
-rpc = rpc[-c(1:49), ] # remove data before 1959Q2 due to NAs
+rpc = rpc[-c(1:50), ] # remove data before 1959Q3 due to NAs
 
 get_data_rpc = function(start_q, end_q) {
   start_quarter = str_remove(start_q, ":")
@@ -444,9 +454,18 @@ get_data_rpc = function(start_q, end_q) {
   rpc_full = rpc %>%
     select("DATE" : end_col_name)
   
-  end_index = as.numeric(str_sub(end_quarter, start = 3, end = 4)) + as.numeric(str_sub(end_quarter, start = 6, end = 6)) / 4
-  # 23q4 --> 23.75
-  start_index = as.numeric(str_sub(start_quarter, start = 3, end = 4)) + as.numeric(str_sub(start_quarter, start = 6, end = 6)) / 4
+  if (as.numeric(str_sub(end_quarter, start = 3, end = 4)) >= 97) {
+    end_index <<- as.numeric(str_sub(end_quarter, start = 3, end = 4)) + as.numeric(str_sub(end_quarter, start = 6, end = 6)) / 4 + 1900
+  } else {
+    end_index <<- as.numeric(str_sub(end_quarter, start = 3, end = 4)) + as.numeric(str_sub(end_quarter, start = 6, end = 6)) / 4 + 2000
+  }
+  # 23q3 --> 23.75 --> 2023.75
+  if (as.numeric(str_sub(start_quarter, start = 3, end = 4)) >= 97) {
+    start_index <<- as.numeric(str_sub(start_quarter, start = 3, end = 4)) + as.numeric(str_sub(start_quarter, start = 6, end = 6)) / 4 + 1900
+  } else {
+    start_index <<- as.numeric(str_sub(start_quarter, start = 3, end = 4)) + as.numeric(str_sub(start_quarter, start = 6, end = 6)) / 4 + 2000
+  }
+  
   num_quarters <<- (end_index - start_index) * 4 +1
   
   num_col = num_quarters + 50 
@@ -461,7 +480,8 @@ get_data_rpc = function(start_q, end_q) {
 
 # rpc_full = get_data_rpc("2003Q2","2005Q4")
 # rpc_full = get_data_rpc("2018Q1", "2023Q4")
-rpc_full = get_data_rpc("2020Q4", "2023Q4")
+# rpc_full = get_data_rpc("2020Q4", "2023Q4")
+rpc_full = get_data_rpc("1997:Q1", "2003:Q4")
 
 
 fitADL=function(Y,X1,X2,p_y,p_x1,p_x2,h){
@@ -780,14 +800,14 @@ dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x1, adl_p
   rpc_full = get_data_rpc(start_quarter, end_quarter)
   spread = X2
   
-  # earliest possible start: 1959Q2, latest end: 2023q4
+  # earliest possible start: 1959Q3, latest end: 2023q4
   year_start = as.numeric(str_sub(start_quarter, start = 1, end = 4))
   year_end = as.numeric(str_sub(end_quarter, start = 1, end = 4))
   q_start = as.numeric(str_sub(start_quarter, start = 6, end = 6))
   q_end = as.numeric(str_sub(end_quarter, start = 6, end = 6))
   
-  row_start = (year_start - 1959) * 4 + q_start - 2 # earliest 1959q3 growth rate -> row 1
-  row_end = (year_end - 1959) * 4 + q_end - 2
+  row_start = (year_start - 1959) * 4 + q_start - 3 # earliest 1959q3 growth rate -> row 1
+  row_end = (year_end - 1959) * 4 + q_end - 3
   
   oosy = Y[c(row_start:row_end), ] # get real values
   

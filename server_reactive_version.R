@@ -49,7 +49,7 @@ server = function(input, output, session) {
     mae_line = paste0("MAE for the best AR model (lag ", best_ar_lag(),"):", round(benchmark_AR()$errors[2],4))
     
     signs_wrong_line = paste0("Percentage of signs predicted wrongly for the best AR model (lag ", 
-                             best_ar_lag(),"):", round(benchmark_AR()$errors[3]*100,2), "%")
+                              best_ar_lag(),"):", round(benchmark_AR()$errors[3]*100,2), "%")
     
     paste(rmsfe_line, mae_line, signs_wrong_line, sep = "\n")
     
@@ -136,7 +136,7 @@ server = function(input, output, session) {
     
     signs_wrong_line = paste("Percentage of signs predicted wrongly for the chosen model:", round(model()$errors[3]*100, 2), "%")
     
-    dm_prob = pt(-abs(dm_stat), num_quarters-rval_h()-1)
+    dm_prob = suppressWarnings(pt(-abs(dm_stat), num_quarters-rval_h()-1))
     hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
     
     dm_test_line = ifelse(is.na(hyp_test), "", paste("We", hyp_test, "the null hypothesis of equal predictive ability as the t-statistic is", round(dm_stat,2)))
@@ -169,12 +169,13 @@ server = function(input, output, session) {
     rmsfe = model()$errors[1]
     
     rval_year_end = reactive({
-      as.numeric(str_sub(end_quarter, start = 3, end = 4))})
+      ifelse(as.numeric(str_sub(end_quarter, start = 3, end = 4))>=97, as.numeric(str_sub(end_quarter, start = 3, end = 4))+1900, as.numeric(str_sub(end_quarter, start = 3, end = 4))+2000)})
     rval_quarter_end = reactive({as.numeric(str_sub(end_quarter, start = 6, end = 6))})
     year_end = rval_year_end()
     quarter_end = rval_quarter_end()
     
-    rval_year_start = reactive({as.numeric(str_sub(start_quarter, start = 3, end = 4))})
+    rval_year_start = reactive({
+      ifelse(as.numeric(str_sub(start_quarter, start = 3, end = 4))>=97, as.numeric(str_sub(start_quarter, start = 3, end = 4))+1900, as.numeric(str_sub(start_quarter, start = 3, end = 4))+2000)})
     rval_quarter_start = reactive({as.numeric(str_sub(start_quarter, start = 6, end = 6))})
     year_start = rval_year_start()
     quarter_start = rval_quarter_start()
@@ -187,7 +188,7 @@ server = function(input, output, session) {
       mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
       drop_na() %>%
       nrow()
-    last_obs = ifelse(last_obs == 258, 257, last_obs)
+    last_obs = ifelse(last_obs == 257, 256, last_obs)
     true_values = tail(Y_recent[1:last_obs+1,], num_quarters+8) #add some context before test window
     # dates1 = tail(mse_data[1:last_obs+1,], 15)
     # dates2 = tail(mse_data[1:last_obs+1,], 10)
@@ -208,8 +209,9 @@ server = function(input, output, session) {
     upper.ts = ts(forecast_intervals()[,1], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     lower.ts = ts(forecast_intervals()[,3], start = c(year_start, quarter_start), end = c(year_end, quarter_end), frequency = 4)
     
-    xaxis_start = paste0(year_start_pred + 2000,"-", quarter_start_pred*3, "-01")
-    xaxis_end = paste0(year_end + 2000,"-",quarter_end*3,"-01")
+    xaxis_start = paste0(year_start_pred,"-", quarter_start_pred*3, "-01")
+    xaxis_end = paste0(year_end,"-",quarter_end*3,"-01")
+    
     time = seq(from=as.Date(xaxis_start),to=as.Date(xaxis_end),by="3 months")
     toplot = cbind.data.frame(true_values, time)
     toplot$forecast = c(rep(NA, 8), forecast.ts)
@@ -285,14 +287,14 @@ server = function(input, output, session) {
   
   output$your_chosen_model <- renderText({
     ifelse(input$model_type == "AR", paste0("Your chosen model is AR(",best_ar_lag(), ")."), 
-             ifelse(input$model_type == "ADL", paste0("Your chosen model is ADL(", model()$lags[1], ",", model()$lags[2], ",", model()$lags[3], ")."), 
-                    paste0("Your chosen model is ", input$model_type, ".", 
-                           ifelse(input$model_type == "Granger-Ramanathan", paste0(" The constant is ", round(model()$weights[1],2), 
-                                                                                   " and the weights assigned to the 8 AR models are ", 
-                                                                                   round(model()$weights[2],2), ", ", round(model()$weights[3],2), ", ", 
-                                                                                   round(model()$weights[4],2), ", ", round(model()$weights[5],2), ", ", 
-                                                                                   round(model()$weights[6],2), ", ", round(model()$weights[7],2), ", ", 
-                                                                                   round(model()$weights[8],2), ", ", round(model()$weights[9],2), " respectively."), ""))))
+           ifelse(input$model_type == "ADL", paste0("Your chosen model is ADL(", model()$lags[1], ",", model()$lags[2], ",", model()$lags[3], ")."), 
+                  paste0("Your chosen model is ", input$model_type, ".", 
+                         ifelse(input$model_type == "Granger-Ramanathan", paste0(" The constant is ", round(model()$weights[1],2), 
+                                                                                 " and the weights assigned to the 8 AR models are ", 
+                                                                                 round(model()$weights[2],2), ", ", round(model()$weights[3],2), ", ", 
+                                                                                 round(model()$weights[4],2), ", ", round(model()$weights[5],2), ", ", 
+                                                                                 round(model()$weights[6],2), ", ", round(model()$weights[7],2), ", ", 
+                                                                                 round(model()$weights[8],2), ", ", round(model()$weights[9],2), " respectively."), ""))))
   })
   
   output$dm_test_result <- ({reactive({
@@ -301,7 +303,7 @@ server = function(input, output, session) {
     dm_stat = ifelse(input$model_type == "AR", NA, dm_test2(l1, l2, rval_h()))
     #dm_stat = 1.3
     
-    dm_prob = pt(-abs(dm_stat), num_quarters-rval_h()-1)
+    dm_prob = suppressWarnings(pt(-abs(dm_stat), num_quarters-rval_h()-1))
     hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
     
     dm_test_line = ifelse(is.na(hyp_test), "", paste0("We ", hyp_test, " the null hypothesis of equal predictive ability as the t-statistic is ", round(dm_stat,2), "."))
