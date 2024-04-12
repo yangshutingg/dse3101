@@ -141,7 +141,7 @@ table>thead>tr>th, .table>thead>tr>th, table>tbody>tr>th, .table>tbody>tr>th, ta
       ),
       p("AR: regression model in which GDP growth rate is regressed against its previous values"),
       p("ADL: regression model in which GDP growth rate is regressed against its previous values & previous values of real personal consumption and treasury term spread"),
-      p("Simple Average: average of predictions from several AR models"),
+      p("Simple Average: combination of forecasts using equal weights"),
       p("Granger-Ramanathan: combination of forecasts using optimal weights"),
       selectInput("sig_level",
                   "Forecast Interval",
