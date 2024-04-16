@@ -5,10 +5,10 @@ library(tidyverse)
 library(zoo)
 library(sandwich)
 library(lsei)
-data = read_excel("ROUTPUTQvQd.xlsx") 
+data = read_excel("data/ROUTPUTQvQd.xlsx") 
 data = data[-c(1:50), ] # remove data before 1959Q3 due to NAs
 
-data_spread = read_excel("allmonth.xls")
+data_spread = read_excel("data/allmonth.xls")
 
 data_spread = data_spread[-c(1:6, 781:795),]
 data_spread = data_spread %>%
@@ -442,7 +442,7 @@ intervals = function(x, p, rmsfe) {
 
 
 # ADL - real personal consumption, same transformation as gdp level
-rpc = read_excel("RCONQvQd.xlsx")
+rpc = read_excel("data/RCONQvQd.xlsx")
 rpc = rpc[-c(1:50), ] # remove data before 1959Q3 due to NAs
 
 get_data_rpc = function(start_q, end_q) {

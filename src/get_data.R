@@ -5,7 +5,7 @@ url = "https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/
 url_spread = "https://www.newyorkfed.org/research/capital_markets/ycfaq#/interactive"
 
 file_path <- getwd()
-fprof <- makeFirefoxProfile(list(browser.download.dir = file_path,
+fprof <- makeFirefoxProfile(list(browser.download.dir = paste0(file_path, "/data"),
                                  browser.download.folderList = 2L,
                                  browser.download.manager.showWhenStarting = FALSE,
                                  browser.helperApps.neverAsk.openFile = "text/csv",
@@ -20,7 +20,7 @@ webElem <- remDr$findElement(using = "xpath", "/html/body/div[1]/main/section[1]
 webElem$clickElement()
 
 getgdp = remDr$findElement(using = "xpath", "/html/body/div[1]/main/section[1]/div[2]/div[1]/ul[1]/li/a")
-# getgdp$clickElement()
+getgdp$clickElement()
 
 remDr$goBack()
 
@@ -28,7 +28,7 @@ rcon = remDr$findElement(using = "xpath", "/html/body/div[1]/main/section[1]/div
 rcon$clickElement()
 
 getrcon = remDr$findElement(using = "xpath", "/html/body/div[1]/main/section[1]/div[2]/div[1]/ul[1]/li/a")
-# getrcon$clickElement()
+getrcon$clickElement()
 
 remDr$navigate(url_spread)
 downloads = remDr$findElement(using = "xpath", '//*[@id="archiveButton"]')
