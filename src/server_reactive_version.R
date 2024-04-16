@@ -34,15 +34,6 @@ server = function(input, output, session) {
     end_quarter = rval_end_quarter()
     data_used = rval_data_used()
     
-    #rank_ar = order(rval_AR_models())
-    #best_ar_lag = rank_ar[1]
-    
-    
-    #performance metrics
-    #code
-    
-    
-    
     rmsfe_line = paste0("RMSFE for the best AR model (lag ", best_ar_lag(),"):", round(benchmark_AR()$errors[1],4))
     
     
@@ -71,11 +62,11 @@ server = function(input, output, session) {
       rpc_used = rval_rpc_used()
       spread_used = X2
       #cv for ADL
-      x1_lags = c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4)
-      x2_lags = c(1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4)
+      x1_lags = c(0,0,0,0,0,1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,4,4,4)
+      x2_lags = c(0,1,2,3,4,0,1,2,3,4,0,1,2,3,4,0,1,2,3,4,0,1,2,3,4)
       combs = data.frame(x1_lags, x2_lags)
       ADL_errors = reactive({
-        sapply(1:16, function(i){
+        sapply(1:25, function(i){
           cv_rolling_adl(data_full = rval_data_used(),rpc_full = rpc_used,spread = spread_used, Y_recent,p_y = best_ar_lag, p_x1 = combs[i,1], p_x2 = combs[i,2], h = h)$errors[1]
         })
       })
@@ -112,15 +103,9 @@ server = function(input, output, session) {
     end_quarter = rval_end_quarter()
     data_used = rval_data_used()
     
-    #rank_ar = order(rval_AR_models())
-    #best_ar_lag = rank_ar[1]
-    
-    #model = reactive({build_model(input$model_type, input$h, best_ar_lag)})
-    
     l1 = benchmark_AR()$abs_loss
     l2 = model()$abs_loss
-    dm_stat = ifelse(input$model_type == "AR", NA, dm_test2(l1, l2, rval_h()))
-    #dm_stat = 1.3
+    dm_stat = ifelse(input$model_type == "AR"|(input$model_type=="ADL"&model()$lags[2]==0&model()$lags[3]==0), NA, dm_test2(l1, l2, rval_h()))
     
     model_type_line = reactive({
       ifelse(input$model_type == "AR", paste0("Your chosen model is AR(",best_ar_lag(), ")"), 
@@ -160,11 +145,6 @@ server = function(input, output, session) {
     end_quarter = rval_end_quarter()
     data_used = rval_data_used()
     
-    #rank_ar = order(rval_AR_models())
-    #best_ar_lag = rank_ar[1]
-    
-    #model = reactive({build_model(input$model_type, input$h, best_ar_lag)})
-    
     forecasts = model()$pred
     rmsfe = model()$errors[1]
     
@@ -190,10 +170,6 @@ server = function(input, output, session) {
       nrow()
     last_obs = ifelse(last_obs == 257, 256, last_obs)
     true_values = tail(Y_recent[1:last_obs+1,], num_quarters+8) #add some context before test window
-    # dates1 = tail(mse_data[1:last_obs+1,], 15)
-    # dates2 = tail(mse_data[1:last_obs+1,], 10)
-    # plot_data = as.data.frame(c(true_values, dates1))
-    # plot_data_2 = as.data.frame(forecasts, dates2)
     
     
     true_ts = ts(true_values, start = c(year_start_pred, quarter_start_pred), end = c(year_end, quarter_end), frequency = 4)
@@ -300,8 +276,7 @@ server = function(input, output, session) {
   output$dm_test_result <- ({reactive({
     l1 = benchmark_AR()$abs_loss
     l2 = model()$abs_loss
-    dm_stat = ifelse(input$model_type == "AR", NA, dm_test2(l1, l2, rval_h()))
-    #dm_stat = 1.3
+    dm_stat = ifelse(input$model_type == "AR"|(input$model_type=="ADL"&model()$lags[2]==0&model()$lags[3]==0), NA, dm_test2(l1, l2, rval_h()))
     
     dm_prob = suppressWarnings(pt(-abs(dm_stat), num_quarters-rval_h()-1))
     hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
@@ -312,17 +287,4 @@ server = function(input, output, session) {
   })
   })
 }
-
-#add more performance metrics 
-
-# true_ts_test = ts(tail(Y_recent[1:187,],19), start = c(2001,2), end = c(2005,4),frequency = 4)
-# forecast.ts_test = ts(ar12$pred, start = c(2003, 2), end = c(2005, 4), frequency = 4)
-# upper.ts_test = ts(int[,1], start = c(2003, 2), end = c(2005, 4), frequency = 4)
-# lower.ts_test = ts(int[,3], start = c(2003, 2), end = c(2005, 4), frequency = 4)
-# 
-# plot.ts(true_ts_test, main = "h-step Forecasts", cex.axis=1.5, lwd=1.8, col="black", ylab="GDP growth")
-# points(forecast.ts_test, type = "l", col = "red", lwd = 1.8)
-# points(upper.ts_test, type = "l", col = "blue", lwd = 1.8, alpha = 0.5)
-# points(lower.ts_test, type = "l", col = "blue", lwd = 1.8, alpha = 0.5)
-# legend("bottomleft", legend = c("True values", "Forecasts", "Upper bound of interval", "Lower bound of interval"))
 
