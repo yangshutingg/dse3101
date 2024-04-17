@@ -4,7 +4,8 @@ library(shinythemes)
 
 ui <- fluidPage(
   tags$head(
-    tags$style(HTML(".main-container, .tab-content {
+    tags$style(HTML("
+    .main-container, .tab-content {
       flex-grow: 1;
       display: flex;
       flex-direction: column;
@@ -23,38 +24,42 @@ ui <- fluidPage(
       flex-grow: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       justify-content: center;
-
     }
 
+    
+    .table{
+      font-size:16px!important;
+      font-family: 'Arial', sans-serif;
+    }
+    
+    #stats_table {
+      flex-grow: 1; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-around;
+      margin-bottom:20px;
+    }
     .tab-content {
       border: 1px solid #ddd;
       border-radius: 0 4px 4px 4px;
       padding: 15px;
       max-height: 80vh;
       height: 80vh;
-
     }
+    
     #plot {
       flex-grow: 1;
     }
-    
-    .table{
-    font-size:16px!important;
-    }
-    
-    #stats_table {
-    flex-grow: 1; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: space-around;
-    margin-bottom:20px;
-    }
 
-    #benchmark_stats, #chosen_model_stats, #pct_signs_wrong {
-      margin-bottom: 20px; 
-      background-color: aliceblue;
+    .forecast-title{
+      font-size: 28px;
+      font-weight: bold;
+      text-align:center;
+    }
+    
+    table>thead>tr>th, .table>thead>tr>th, table>tbody>tr>th, .table>tbody>tr>th, table>tfoot>tr>th, .table>tfoot>tr>th, table>thead>tr>td, .table>thead>tr>td, table>tbody>tr>td, .table>tbody>tr>td, table>tfoot>tr>td, .table>tfoot>tr>td { 
+      border-color: aliceblue;
     }
 
     #pct_signs_wrong {
@@ -67,48 +72,43 @@ ui <- fluidPage(
     #quarter_error_message{
     font-size: 30px;
     }
+    
     /* Navigation Tabs CSS */
- .nav-tabs {
-  border-bottom: 3px solid #222; /* Thicker bottom border for a strong line */
-}
+    .nav-tabs {
+      border-bottom: 3px solid #222; /* Thicker bottom border for a strong line */
+    }
 
-.nav-tabs > li > a {
-  color: #ddd; /* Lighter text for contrast against dark background */
-  font-family: 'Arial', sans-serif;
-  font-size: 16px;
-  border: none; /* Remove individual borders for a cleaner look */
-  margin-right: 0.5rem;
-  margin-bottom: -1px; /* Overlap the bottom border to avoid double borders */
-  line-height: 1.5;
-  border-radius: 0.5rem 0.5rem 0 0; /* More pronounced rounded corners at the top */
-  padding: 12px 20px;
-  transition: color 0.3s ease, background-color 0.3s ease; /* Smooth transition for color and background */
-}
+    .nav-tabs > li > a {
+      color: #ddd; /* Lighter text for contrast against dark background */
+      font-family: 'Arial', sans-serif;
+      font-size: 16px;
+      border: none; /* Remove individual borders for a cleaner look */
+      margin-right: 0.5rem;
+      margin-bottom: -1px; /* Overlap the bottom border to avoid double borders */
+      line-height: 1.5;
+      border-radius: 0.5rem 0.5rem 0 0; /* More pronounced rounded corners at the top */
+      padding: 12px 20px;
+      transition: color 0.3s ease, background-color 0.3s ease; /* Smooth transition for color and background */
+    }
 
-.nav-tabs > li > a:hover,
-.nav-tabs > li > a:focus {
-  background-color: #555; /* Slightly lighter background on hover/focus */
-  color: #fff; /* White text on hover/focus for better visibility */
-  border: none;
-}
+    .nav-tabs > li > a:hover,
+    .nav-tabs > li > a:focus {
+      background-color: #555; /* Slightly lighter background on hover/focus */
+      color: #fff; /* White text on hover/focus for better visibility */
+      border: none;
+    }
 
-.nav-tabs > li.active > a,
-.nav-tabs > li.active > a:hover,
-.nav-tabs > li.active > a:focus {
-  color: #fff; /* White text for the active tab */
-  background-color: darkcyan; /* Use a theme color for the active tab background */
-  border: none;
-  border-bottom-color: transparent;
-  border-radius: 0.5rem 0.5rem 0 0; /* Preserve the rounded corners on top */
-  box-shadow: 0 -2px 5px rgba(0,0,0,0.15); /* Subtle shadow for depth */
-}
-.forecast-title{
-  font-size: 28px;
-  font-weight: bold;
-  text-align:center;
-}
-table>thead>tr>th, .table>thead>tr>th, table>tbody>tr>th, .table>tbody>tr>th, table>tfoot>tr>th, .table>tfoot>tr>th, table>thead>tr>td, .table>thead>tr>td, table>tbody>tr>td, .table>tbody>tr>td, table>tfoot>tr>td, .table>tfoot>tr>td { 
-  border-color: aliceblue;}
+    .nav-tabs > li.active > a,
+    .nav-tabs > li.active > a:hover,
+    .nav-tabs > li.active > a:focus {
+      color: #fff; /* White text for the active tab */
+      background-color: darkcyan; /* Use a theme color for the active tab background */
+      border: none;
+      border-bottom-color: transparent;
+      border-radius: 0.5rem 0.5rem 0 0; /* Preserve the rounded corners on top */
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.15); /* Subtle shadow for depth */
+    }
+
   ")),
     tags$link(href = 'https://fonts.googleapis.com/css?family=Arial', rel = 'stylesheet', type = 'text/css')
   ),
