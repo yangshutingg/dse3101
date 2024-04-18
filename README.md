@@ -8,7 +8,7 @@ This Shiny application is designed for benchmarking different economic forecasti
 Before running the application, ensure you have R installed on your system. The application requires several R packages which can be installed with the following commands:
 
 ```R
-install.packages(c("readxl", "tidyverse", "zoo", "sandwich", "lsei", "shiny", "shinyWidgets", "shinythemes"))
+install.packages(c("readxl", "tidyverse", "zoo", "sandwich", "lsei", "shiny", "shinyWidgets", "shinythemes","RSelenium","plotly"))
 
 ```
 
