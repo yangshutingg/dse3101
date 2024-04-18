@@ -1,10 +1,16 @@
 rm(list=ls())
 
-library(readxl)
-library(tidyverse)
-library(zoo)
-library(sandwich)
-library(lsei)
+#install.packages("pacman")
+pacman::p_load(tidyverse,
+               readxl,
+               zoo,
+               sandwich,
+               lsei,
+               shiny,
+               RSelenium,
+               shinyWidgets,
+               shinythemes,
+               plotly)
 
 data = read_excel("data/ROUTPUTQvQd.xlsx") 
 data = data[-c(1:50), ] # remove data before 1959Q3 due to NAs
