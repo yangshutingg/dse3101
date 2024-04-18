@@ -1,7 +1,7 @@
 # Benchmarking Economic Models with Shiny
 
 ## Introduction
-This Shiny application is designed for benchmarking different economic forecasting models with real-time data. Users can select start and end quarters, set forecast horizons, and choose between various economic model types such as AR, ADL, and more. The application then visualizes the forecasted economic indicators and compares the performance of the selected models.
+This Shiny application is designed for benchmarking different economic forecasting models with real-time data. Users can select start and end quarters, set forecast horizons, and choose between various economic model types such as AR, ADL, and more. The application then visualizes the forecasted GDP growth rate and compares the performance of the selected models.
 
 ## Installation
 
