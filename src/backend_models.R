@@ -334,7 +334,18 @@ AR_combined1 = ar_combined(data_full, 1, test_rolling, Y_recent)
 
 
 #granger-ramanathan with constant and constraints
-ar_gr_combined = function(data_full, h, cv_preds, oosy, test_fn, Y) {
+ar_gr_combined = function(data_full, h, test_fn, Y) {
+  cv_preds = sapply(1:8, function(i){
+    cv_rolling(data_full, Y_recent, p = i, h = h)$pred})
+  no_obs_cv = data_full %>%
+    select(50) %>%
+    rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
+    mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
+    drop_na() %>%
+    mutate(loggdp = log(gdp)) %>%
+    nrow()
+  oosy = as.matrix(Y_recent[(no_obs_cv-48):(no_obs_cv+1)])
+  
   e_mat = diag(9) #8 AR models
   e_mat[1, 1] = 0
   X = cbind(rep(1, 50), cv_preds) #50 predictions
@@ -362,17 +373,7 @@ ar_gr_combined = function(data_full, h, cv_preds, oosy, test_fn, Y) {
   return(list("pred" = AR_gr_combined, "errors" = errors,"real"=real, "abs_loss"=abs_errors,"weights"=weights))
 }
 
-ar_preds = sapply(1:8, function(i){
-  cv_rolling(data_full, Y_recent, p = i, h = 1)$pred})
-no_obs_cv = data_full %>%
-  select(50) %>%
-  rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-  mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
-  drop_na() %>%
-  mutate(loggdp = log(gdp)) %>%
-  nrow()
-oosy = as.matrix(Y_recent[(no_obs_cv-48):(no_obs_cv+1)])
-ar_combined3 = ar_gr_combined(data_full, 1, ar_preds, oosy, test_rolling, Y_recent)
+ar_combined3.1 = ar_gr_combined(data_full, 1, test_rolling, Y_recent)
 
 
 #find interval boundaries for plotting
@@ -766,7 +767,7 @@ cv_rolling_adl = function(data_full, rpc_full, spread, Y, noos = 50, p_y, p_x1, 
   }
 }
 
-adl22=cv_rolling_adl(data_full,rpc_full,X2,Y_recent,50,2,0,3,1) #1-step POOS ADL(2,2) forecast
+adl22=cv_rolling_adl(data_full,rpc_full,X2,Y_recent,50,2,0,3,1) #1-step POOS ADL(2,0,3) forecast
 
 
 
@@ -782,59 +783,13 @@ test_rolling_adl = function(data_full, rpc_full, spread, Y, noos = num_quarters,
   }
 }
 
-adl22=test_rolling_adl(data_full,rpc_full,X2,Y_recent,num_quarters,3,2,2,1) #1-step POOS ADL(2,2) forecast
+adl22=test_rolling_adl(data_full,rpc_full,X2,Y_recent,num_quarters,3,2,2,1) #1-step POOS ADL(3,2,2) forecast
 
 
 
-# DM test - between AR and ADL
-# output: t-statistic and plot
+# DM test
 
-dm_test = function(Y, start_quarter, end_quarter, ar_p, adl_p_y, adl_p_x1, adl_p_x2, h) {
-  data_full = get_data(start_quarter, end_quarter)
-  rpc_full = get_data_rpc(start_quarter, end_quarter)
-  spread = X2
-  
-  # earliest possible start: 1959Q3, latest end: 2023q4
-  year_start = as.numeric(str_sub(start_quarter, start = 1, end = 4))
-  year_end = as.numeric(str_sub(end_quarter, start = 1, end = 4))
-  q_start = as.numeric(str_sub(start_quarter, start = 6, end = 6))
-  q_end = as.numeric(str_sub(end_quarter, start = 6, end = 6))
-  
-  row_start = (year_start - 1959) * 4 + q_start - 3 # earliest 1959q3 growth rate -> row 1
-  row_end = (year_end - 1959) * 4 + q_end - 3
-  
-  oosy = Y[c(row_start:row_end), ] # get real values
-  
-  ar = test_rolling(data_full, Y, num_quarters, ar_p, h)
-  #Compute absolute loss of AR model
-  lar = abs(oosy-ar$pred)
-  
-  adl = test_rolling_adl(data_full, rpc_full, spread, Y, num_quarters, adl_p_y, adl_p_x1, adl_p_x2, h)
-  #Compute absolute loss of ADL model
-  ladl = abs(oosy-adl$pred)
-  
-  #Compute loss differential (d_t) (AR-ADL)
-  dt = lar -ladl
-  
-  #Create ts object containing loss differential
-  dt.ts=ts(dt, start=c(year_start,q_start), end=c(year_end,q_end), freq=4)
-  
-  #Regress d_t (AR-ADL) for 1-step forecasts on a constant - get estimate of mean(d_t)
-  dmreg=lm(dt~1) #regression
-  
-  x=dmreg$coefficients/sqrt(NeweyWest(dmreg,lag=num_quarters^(1/3))) #form the DM t-statistic
-  if (num_quarters<50) {
-    x[1,1] = x[1,1]*sqrt(1+(1/num_quarters)*(1-2*h) + (1/num_quarters^2)*h*(h-1))
-  }
-  return(x[1,1]) # extract result
-}
-
-# comparing AR(2) and ADL(2, 2, 2), 1-step ahead
-dm_test(Y_recent, "2003Q2", "2005Q4", 2, 2, 2, 2, 1)
-
-
-
-dm_test2 = function(l1, l2, h) {
+dm_test = function(l1, l2, h) {
   dt = l1 - l2
   dmreg = lm(dt~1)
   x=dmreg$coefficients/sqrt(NeweyWest(dmreg,lag=num_quarters^(1/3))) #form the DM t-statistic
@@ -844,5 +799,5 @@ dm_test2 = function(l1, l2, h) {
   return(x[1,1]) # extract result
 }
 
-dm_test2(ar12$abs_loss, AR_combined1$abs_loss, 1)
+dm_test(ar12$abs_loss, AR_combined1$abs_loss, 1)
 

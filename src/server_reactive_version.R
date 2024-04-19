@@ -28,24 +28,6 @@ server = function(input, output, session) {
     test_rolling(data_full = rval_data_used(), Y_recent, p = best_ar_lag(), h = rval_h())
   })
   
-  
-  output$benchmark_stats = renderText({
-    start_quarter = rval_start_quarter()
-    end_quarter = rval_end_quarter()
-    data_used = rval_data_used()
-    
-    rmsfe_line = paste0("RMSFE for the best AR model (lag ", best_ar_lag(),"):", round(benchmark_AR()$errors[1],4))
-    
-    
-    mae_line = paste0("MAE for the best AR model (lag ", best_ar_lag(),"):", round(benchmark_AR()$errors[2],4))
-    
-    signs_wrong_line = paste0("Percentage of signs predicted wrongly for the best AR model (lag ", 
-                              best_ar_lag(),"):", round(benchmark_AR()$errors[3]*100,2), "%")
-    
-    paste(rmsfe_line, mae_line, signs_wrong_line, sep = "\n")
-    
-  })
-  
   output$benchmark = renderText({
     paste0("The benchmark model is AR(", best_ar_lag(),").")
   })
@@ -81,61 +63,13 @@ server = function(input, output, session) {
       model = ar_combined(rval_data_used(), h, test_rolling, Y_recent)
     }
     else if (type == "Granger-Ramanathan") {
-      no_obs_cv = rval_data_used() %>%
-        select(50) %>%
-        rename_with(.cols = 1, ~"gdp") %>%  # renaming columns
-        mutate(gdp = suppressWarnings(as.numeric(gdp))) %>%
-        drop_na() %>%
-        mutate(loggdp = log(gdp)) %>%
-        nrow()
-      oosy = Y_recent[(no_obs_cv-49):no_obs_cv+1]
-      AR_cv_preds = sapply(1:8, function(i){
-        cv_rolling(data_full = rval_data_used(), Y_recent, p = i, h = h)$pred
-      })
-      model = ar_gr_combined(rval_data_used(), h, AR_cv_preds, oosy, test_rolling, Y_recent)
+      model = ar_gr_combined(rval_data_used(), h, test_rolling, Y_recent)
     }
   }
   
   model = reactive({build_model(input$model_type, rval_h(), best_ar_lag())})
   
-  output$chosen_model_stats = renderText({
-    start_quarter = rval_start_quarter()
-    end_quarter = rval_end_quarter()
-    data_used = rval_data_used()
-    
-    l1 = benchmark_AR()$abs_loss
-    l2 = model()$abs_loss
-    dm_stat = ifelse(input$model_type == "AR"|(input$model_type=="ADL"&model()$lags[2]==0&model()$lags[3]==0), NA, dm_test2(l1, l2, rval_h()))
-    
-    model_type_line = reactive({
-      ifelse(input$model_type == "AR", paste0("Your chosen model is AR(",best_ar_lag(), ")"), 
-             ifelse(input$model_type == "ADL", paste0("Your chosen model is ADL(", model()$lags[1], " ,", model()$lags[2], " ,", model()$lags[3], ")"), 
-                    paste0("Your chosen model is ", input$model_type)))
-    })
-    
-    
-    rmsfe_line = paste("RMSFE for the chosen model:", round(model()$errors[1], 4))
-    
-    
-    mae_line = paste("MAE for the chosen model:", round(model()$errors[2], 4))
-    
-    signs_wrong_line = paste("Percentage of signs predicted wrongly for the chosen model:", round(model()$errors[3]*100, 2), "%")
-    
-    dm_prob = suppressWarnings(pt(-abs(dm_stat), num_quarters-rval_h()-1))
-    hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
-    
-    dm_test_line = ifelse(is.na(hyp_test), "", paste("We", hyp_test, "the null hypothesis of equal predictive ability as the t-statistic is", round(dm_stat,2)))
-    
-    paste(model_type_line(), rmsfe_line, mae_line, signs_wrong_line, dm_test_line, sep = "\n")
-    
-    
-  })
-  
-  
-  
-  
-  
-  
+
   #plot for chosen model
   #Syntax: ts(object, start=startdate, end=enddate, freq=frequency (periods per year))
   
@@ -276,7 +210,10 @@ server = function(input, output, session) {
   output$dm_test_result <- ({reactive({
     l1 = benchmark_AR()$abs_loss
     l2 = model()$abs_loss
-    dm_stat = ifelse(input$model_type == "AR"|(input$model_type=="ADL"&model()$lags[2]==0&model()$lags[3]==0), NA, dm_test2(l1, l2, rval_h()))
+    dm_stat = ifelse(input$model_type == "AR", NA,
+                     ifelse(input$model_type == "Simple Average", dm_test(l1, l2, rval_h()),
+                            ifelse(input$model_type == "Granger-Ramanathan", dm_test(l1, l2, rval_h()),
+                                   ifelse(model()$lags[2]==0 & model()$lags[3]==0, NA, dm_test(l1, l2, rval_h())))))
     
     dm_prob = suppressWarnings(pt(-abs(dm_stat), num_quarters-rval_h()-1))
     hyp_test = ifelse(dm_prob<0.05, "can reject", "cannot reject")
